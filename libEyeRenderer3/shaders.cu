@@ -786,10 +786,23 @@ extern "C" __global__ void __closesthit__radiance()
     // Retrieve material data
     //
     float3 base_color = make_float3( hit_group_data->material_data.pbr.base_color );
-    if( hit_group_data->material_data.pbr.base_color_tex )
-        base_color *= linearize( make_float3(
+
+    if(geom.UC)   // TODO: UNFIX
+    {
+//      //base_color *= linearize(make_float3(geom.C.x, geom.C.y, geom.C.z));
+//      //base_color = geom.C;//make_float3(geom.C.x, geom.C.y, geom.C.z);
+//      //base_color *= linearize(geom.C);
+//      //base_color = linearize(geom.C);
+      base_color = linearize(make_float3(geom.C.x, geom.C.y, geom.C.z));
+//      //base_color = make_float3(1.0f, 0.0f, 0.0f);//make_float3(geom.C.x, geom.C.y, geom.C.z);
+//        base_color *= linearize( make_float3(
+//                    tex2D<float4>( hit_group_data->material_data.pbr.base_color_tex, geom.UV.x, geom.UV.y )
+//                    ) );
+    }else if( hit_group_data->material_data.pbr.base_color_tex ){
+        base_color = linearize( make_float3(
                     tex2D<float4>( hit_group_data->material_data.pbr.base_color_tex, geom.UV.x, geom.UV.y )
                     ) );
+    }
 
     if(!params.lighting)
     {
