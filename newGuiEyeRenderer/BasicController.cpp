@@ -131,11 +131,12 @@
 
 #define RELEASE                0
 #define PRESS                  1
+#define REPEAT                 2
 
 bool BasicController::ingestKeyAction(int32_t key, int32_t action)
 {
   bool output = false;
-  if(action == PRESS)
+  if(action == PRESS || action == REPEAT)
   {
       if(key == KEY_W){
         output |= !forward;
