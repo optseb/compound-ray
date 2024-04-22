@@ -1,94 +1,46 @@
 {
-  "scenes" : [ { "extras" : { "background-shader":"simple_sky" }, "nodes" : [ 0, 1, 2, 3, 4, 5 ] } ],
+  "scenes" : [ { "extras" : { "background-shader": "simple_sky" }, "nodes" : [ 0, 1, 2, 3, 4, 5 ] } ],
   "nodes" : [
-{
-    "camera" : 0,
-    "name" : "regular-panoramic_Orientation",
-    "rotation" : [
-        -0.7071067690849304,
-        0,
-        0,
-        0.7071067690849304
-    ]
-},
-{
-    "children" : [
-        0
-    ],
-    "name" : "regular-panoramic",
-    "rotation" : [
-        0.7071068286895752,
-        0,
-        0,
-        0.7071068286895752
-    ]
-},
-{
-    "camera" : 1,
-    "name" : "insect-eye-spherical-projector_Orientation",
-    "rotation" : [
-        -0.7071067690849304,
-        0,
-        0,
-        0.7071067690849304
-    ]
-},
-{
-    "children" : [
-        2
-    ],
-    "name" : "insect-eye-spherical-projector",
-    "rotation" : [
-        0.7071068286895752,
-        0,
-        0,
-        0.7071068286895752
-    ]
-},
-{
-    "camera" : 2,
-    "name" : "insect-eye-spherical-projector-ids_Orientation",
-    "rotation" : [
-        -0.7071067690849304,
-        0,
-        0,
-        0.7071067690849304
-    ]
-},
-{
-    "children" : [
-        4
-    ],
-    "name" : "insect-eye-spherical-projector-ids",
-    "rotation" : [
-        0.7071068286895752,
-        0,
-        0,
-        0.7071068286895752
-    ]
-},
-{
-    "camera" : 3,
-    "name" : "insect-eye-fast-vector_Orientation",
-    "rotation" : [
-        -0.7071067690849304,
-        0,
-        0,
-        0.7071067690849304
-    ]
-},
-{
-    "children" : [
-        6
-    ],
-    "name" : "insect-eye-fast-vector",
-    "rotation" : [
-        0.7071068286895752,
-        0,
-        0,
-        0.7071068286895752
-    ]
-},
+    {
+      "camera" : 0,
+      "name" : "regular-panoramic_Orientation",
+      "rotation" : [ -0.7071067690849304, 0, 0, 0.7071067690849304 ]
+    },
+    {
+      "children" : [ 0 ],
+      "name" : "regular-panoramic",
+      "rotation" : [ 0.7071068286895752, 0, 0, 0.7071068286895752 ]
+    },
+    {
+      "camera" : 1,
+      "name" : "insect-eye-spherical-projector_Orientation",
+      "rotation" : [ -0.7071067690849304, 0, 0, 0.7071067690849304 ]
+    },
+    {
+      "children" : [ 2 ],
+      "name" : "insect-eye-spherical-projector",
+      "rotation" : [ 0.7071068286895752, 0, 0, 0.7071068286895752 ]
+    },
+    {
+      "camera" : 2,
+      "name" : "insect-eye-spherical-projector-ids_Orientation",
+      "rotation" : [ -0.7071067690849304, 0, 0, 0.7071067690849304 ]
+    },
+    {
+      "children" : [ 4 ],
+      "name" : "insect-eye-spherical-projector-ids",
+      "rotation" : [ 0.7071068286895752, 0, 0, 0.7071068286895752 ]
+    },
+    {
+      "camera" : 3,
+      "name" : "insect-eye-fast-vector_Orientation",
+      "rotation" : [ -0.7071067690849304, 0, 0, 0.7071067690849304 ]
+    },
+    {
+      "children" : [ 6 ],
+      "name" : "insect-eye-fast-vector",
+      "rotation" : [ 0.7071068286895752, 0, 0, 0.7071068286895752 ]
+    },
     { "mesh" : 0, "translation" : [-2,0,0.0500000007] },
     { "mesh" : 1, "translation" : [2,0,-1.70000005] },
     { "mesh" : 2, "translation" : [0,2,0.150000006] },
@@ -96,66 +48,66 @@
     { "mesh" : 4, "translation" : [0,-2.20000005,0.899999976] },
     { "mesh" : 5, "translation" : [0,-1.79999995,1.70000005] }
   ],
-"cameras" : [
+  "cameras" : [
     {
-        "extras" : {
-            "panoramic" : "true"
-        },
-        "name" : "regular-panoramic",
-        "perspective" : {
-            "aspectRatio" : 1.7777777777777777,
-            "yfov" : 0.39959652046304894,
-            "zfar" : 1000,
-            "znear" : 0.10000000149011612
-        },
-        "type" : "perspective"
+      "extras" : {
+        "panoramic" : "true"
+      },
+      "name" : "regular-panoramic",
+      "perspective" : {
+        "aspectRatio" : 1.7777777777777777,
+        "yfov" : 0.39959652046304894,
+        "zfar" : 1000,
+        "znear" : 0.10000000149011612
+      },
+      "type" : "perspective"
     },
     {
-        "extras" : {
-            "compound-eye" : "true",
-            "compound-projection" : "spherical_orientationwise",
-            "compound-structure" : "eyes/1000-horizontallyAcute-variableDegree.eye"
-        },
-        "name" : "insect-eye-spherical-projector",
-        "perspective" : {
-            "aspectRatio" : 1.7777777777777777,
-            "yfov" : 0.39959652046304894,
-            "zfar" : 1000,
-            "znear" : 0.10000000149011612
-        },
-        "type" : "perspective"
+      "extras" : {
+        "compound-eye" : "true",
+        "compound-projection" : "spherical_orientationwise",
+        "compound-structure" : "eyes/1000-horizontallyAcute-variableDegree.eye"
+      },
+      "name" : "insect-eye-spherical-projector",
+      "perspective" : {
+        "aspectRatio" : 1.7777777777777777,
+        "yfov" : 0.39959652046304894,
+        "zfar" : 1000,
+        "znear" : 0.10000000149011612
+      },
+      "type" : "perspective"
     },
     {
-        "extras" : {
-            "compound-eye" : "true",
-            "compound-structure" : "1000-horizontallyAcute-variableDegree.eye",
-            "compound-projection" : "spherical_orientationwise_ids"
-        },
-        "name" : "insect-eye-spherical-projector-ids",
-        "perspective" : {
-            "aspectRatio" : 1.7777777777777777,
-            "yfov" : 0.39959652046304894,
-            "zfar" : 1000,
-            "znear" : 0.10000000149011612
-        },
-        "type" : "perspective"
+      "extras" : {
+        "compound-eye" : "true",
+        "compound-structure" : "1000-horizontallyAcute-variableDegree.eye",
+        "compound-projection" : "spherical_orientationwise_ids"
+      },
+      "name" : "insect-eye-spherical-projector-ids",
+      "perspective" : {
+        "aspectRatio" : 1.7777777777777777,
+        "yfov" : 0.39959652046304894,
+        "zfar" : 1000,
+        "znear" : 0.10000000149011612
+      },
+      "type" : "perspective"
     },
     {
-        "extras" : {
-            "compound-eye" : "true",
-            "compound-projection" : "single_dimension_fast",
-            "compound-structure" : "1000-horizontallyAcute-variableDegree.eye"
-        },
-        "name" : "insect-eye-fast-vector",
-        "perspective" : {
-            "aspectRatio" : 1.7777777777777777,
-            "yfov" : 0.39959652046304894,
-            "zfar" : 1000,
-            "znear" : 0.10000000149011612
-        },
-        "type" : "perspective"
+      "extras" : {
+        "compound-eye" : "true",
+        "compound-projection" : "single_dimension_fast",
+        "compound-structure" : "1000-horizontallyAcute-variableDegree.eye"
+      },
+      "name" : "insect-eye-fast-vector",
+      "perspective" : {
+        "aspectRatio" : 1.7777777777777777,
+        "yfov" : 0.39959652046304894,
+        "zfar" : 1000,
+        "znear" : 0.10000000149011612
+      },
+      "type" : "perspective"
     }
-],
+  ],
   "meshes" : [
     { "primitives" : [ { "attributes" : { "POSITION" : 1, "COLOR_0" : 2, "NORMAL" : 3 }, "indices" : 0, "material": 0 } ] },
     { "primitives" : [ { "attributes" : { "POSITION" : 5, "COLOR_0" : 6, "NORMAL" : 7 }, "indices" : 4, "material": 0 } ] },
@@ -244,7 +196,7 @@
   ],
   "materials" : [ { "doubleSided" : true } ],
   "asset" : {
-    "generator" : "https://github.com/ABRG-Models/morphologica: morph::Visual::savegltf() (ver 3.0)",
+    "generator" : "https://github.com/ABRG-Models/morphologica [version 3.0]: morph::Visual::savegltf()",
     "version" : "2.0"
   }
 }
