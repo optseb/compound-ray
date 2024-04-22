@@ -150,10 +150,10 @@ bool BasicController::ingestKeyAction(int32_t key, int32_t action)
       }else if (key == KEY_S){
         output |= !backward;
         backward = true;
-      }else if (key == KEY_LEFT_CONTROL){
+      }else if (key == KEY_P){
         output |= !up;
         up = true;
-      }else if (key == KEY_LEFT_SHIFT){
+      }else if (key == KEY_L){
         output |= !down;
         down = true;
       }else if (key == KEY_UP){
@@ -183,10 +183,10 @@ bool BasicController::ingestKeyAction(int32_t key, int32_t action)
       }else if (key == KEY_S){
         output |= backward;
         backward = false;
-      }else if (key == KEY_LEFT_CONTROL){
+      }else if (key == KEY_P){
         output |= up;
         up = false;
-      }else if (key == KEY_LEFT_SHIFT){
+      }else if (key == KEY_L){
         output |= down;
         down = false;
       }else if (key == KEY_UP){
