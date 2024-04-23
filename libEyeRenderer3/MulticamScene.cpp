@@ -482,7 +482,7 @@ void processGLTFNode(
                 }
                 else if (vertex_colours_gltf_accessor.type == TINYGLTF_TYPE_VEC3)
                 {
-                  std::cerr << "\t\t\tWarning: Vertex colours are of type vec3. Hack this code.\n";
+                  std::cerr << "\t\t\tWarning: Vertex colours are of type vec3.\n";
 
                   const tinygltf::BufferView& colour_buffer_view = model.bufferViews[ vertex_colours_gltf_accessor.bufferView ];
                   const tinygltf::Buffer& colour_buffer = model.buffers[ colour_buffer_view.buffer ];
@@ -529,6 +529,9 @@ void processGLTFNode(
                 {
                   std::cerr << "\t\t\tWarning: Vertex colours are not of type vec3 or vec4. Ignoring vertex colours.\n";
                   mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
+                  mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
+                  mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
+                  mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
                   mesh->host_color_types.push_back(-1);
                 }
 
@@ -537,9 +540,9 @@ void processGLTFNode(
             {
                 std::cerr << "\t\tHas vertex colours: false\n";
                 mesh->host_color_types.push_back(-1);
-
                 // We must populate the other buffers so that indices align
                 mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
+                mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
                 mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
                 mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
             }
