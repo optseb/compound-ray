@@ -179,6 +179,8 @@ void CompoundEye::setSamplesPerOmmatidium(int32_t s)
 }
 void CompoundEye::changeSamplesPerOmmatidiumBy(int32_t d)
 {
+  std::cout << "Changing samples per ommatidium from " << specializedData.samplesPerOmmatidium << " to "
+            << (specializedData.samplesPerOmmatidium + d) << std::endl;
   setSamplesPerOmmatidium(specializedData.samplesPerOmmatidium + d);
 }
 
@@ -208,7 +210,7 @@ void CompoundEye::InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, O
   // and update the VRAM to reflect this change
   // TODO: Replace the pointer below with a reference
   RedirectCompoundDataPointer(compoundProgramGroup, targetRecord);
-  
+
   std::cout << "Data redirected, setting record... ";
   // Bind the record to the SBT
   compoundSbt.raygenRecord = s_d_compoundRecordPtrRecord;
