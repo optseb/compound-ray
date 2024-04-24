@@ -36,7 +36,7 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
         changeCurrentEyeSamplesPerOmmatidiumBy(10);
       }else if(key == GLFW_KEY_PAGE_DOWN){
         changeCurrentEyeSamplesPerOmmatidiumBy(-10);
-      }else if(key = GLFW_KEY_C){
+      }else if(key == GLFW_KEY_C){
         saveFrameAs("output.ppm");
       }
 
@@ -130,7 +130,6 @@ int main( int argc, char* argv[] )
       // better feeling of the stochastic spread encountered.
       if(dirtyUI || isCompoundEyeActive())
       {
-
         renderFrame();
         displayFrame();
         dirtyUI = false; // Comment this out to force constant re-rendering
