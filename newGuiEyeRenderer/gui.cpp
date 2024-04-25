@@ -33,9 +33,16 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
       }else if(key == GLFW_KEY_B){
         previousCamera();
       }else if(key == GLFW_KEY_PAGE_UP){
-        changeCurrentEyeSamplesPerOmmatidiumBy(10);
+        int csamp = getCurrentEyeSamplesPerOmmatidium();
+        if (csamp < 32000) {
+            changeCurrentEyeSamplesPerOmmatidiumBy(csamp); // double
+        } else {
+            // else graphics memory use will get very large
+            std::cout << "max allowed samples\n";
+        }
       }else if(key == GLFW_KEY_PAGE_DOWN){
-        changeCurrentEyeSamplesPerOmmatidiumBy(-10);
+        int csamp = getCurrentEyeSamplesPerOmmatidium();
+        changeCurrentEyeSamplesPerOmmatidiumBy(-(csamp/2)); // halve
       }else if(key == GLFW_KEY_C){
         saveFrameAs("output.ppm");
       }
