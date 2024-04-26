@@ -105,7 +105,6 @@ int main( int argc, char* argv[] )
   //glfwSetWindowSizeCallback ( window, windowSizeCallback  );
   //glfwSetScrollCallback     ( window, scrollCallback      );
   //glfwSetWindowUserPointer  ( window, &params       );
-  std::string infile = sutil::sampleDataFilePath(path.c_str());
 
   try
   {
@@ -113,8 +112,8 @@ int main( int argc, char* argv[] )
     setVerbosity(false);
 
     // Load the file
-    std::cout << "Loading file \"" << infile << "\"..." << std::endl;
-    loadGlTFscene(infile.c_str());
+    std::cout << "Loading file \"" << path << "\"..." << std::endl;
+    loadGlTFscene(path.c_str());
 
     // The main loop
     do
