@@ -123,11 +123,11 @@ int main( int argc, char* argv[] )
       if(controller.isActivelyMoving())
       {
         float3 t = controller.getMovementVector();// Local translation
-        translateCameraLocally(t.x, t.y, t.z);
+        translateCamerasLocally(t.x, t.y, t.z);
         float va = controller.getVerticalRotationAngle();
         float vh = controller.getHorizontalRotationAngle();
-        rotateCameraLocallyAround(va, 1.0f, 0.0f, 0.0f);
-        rotateCameraAround(vh, 0.0f, 1.0f, 0.0f);
+        rotateCamerasLocallyAround(va, 1.0f, 0.0f, 0.0f);
+        rotateCamerasAround(vh, 0.0f, 1.0f, 0.0f);
         dirtyUI = true;
       }
 

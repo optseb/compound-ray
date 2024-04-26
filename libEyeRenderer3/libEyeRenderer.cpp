@@ -365,6 +365,22 @@ void rotateCameraLocallyAround(float angle, float x, float y, float z)
 {
   scene.getCamera()->rotateLocallyAround(angle,  make_float3(x,y,z));
 }
+void rotateCamerasAround(float angle, float x, float y, float z)
+{
+  size_t cc = scene.getCameraCount();
+  for (size_t i = 0; i < cc; ++i) {
+    scene.getCamera()->rotateAround(angle,  make_float3(x,y,z));
+    scene.nextCamera();
+  }
+}
+void rotateCamerasLocallyAround(float angle, float x, float y, float z)
+{
+  size_t cc = scene.getCameraCount();
+  for (size_t i = 0; i < cc; ++i) {
+    scene.getCamera()->rotateLocallyAround(angle,  make_float3(x,y,z));
+    scene.nextCamera();
+  }
+}
 void translateCamera(float x, float y, float z)
 {
   scene.getCamera()->move(make_float3(x, y, z));
@@ -372,6 +388,15 @@ void translateCamera(float x, float y, float z)
 void translateCameraLocally(float x, float y, float z)
 {
   scene.getCamera()->moveLocally(make_float3(x, y, z));
+}
+void translateCamerasLocally(float x, float y, float z)
+{
+  // For each camera in scene:
+  size_t cc = scene.getCameraCount();
+  for (size_t i = 0; i < cc; ++i) {
+    scene.getCamera()->moveLocally(make_float3(x, y, z));
+    scene.nextCamera();
+  } // at end should have looped back to original cam
 }
 void resetCameraPose()
 {
