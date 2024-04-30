@@ -86,6 +86,7 @@ int32_t                 width    = 400;
 int32_t                 height   = 400;
 
 GLFWwindow* window = sutil::initUI( "Eye Renderer 3.0", width, height );
+// outputBuffer would seem to be the width x height pixels of the window.
 sutil::CUDAOutputBuffer<uchar4> outputBuffer(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
 sutil::GLDisplay gl_display; // Stores the frame buffer to swap in and out
 
@@ -410,6 +411,21 @@ void setCameraPose(float posX, float posY, float posZ, float rotX, float rotY, f
   c->rotateAround(rotY, make_float3(0,1,0));
   c->rotateAround(rotZ, make_float3(0,0,1));
   c->move(make_float3(posX, posY, posZ));
+}
+
+void getCameraData (std::vector<std::array<float, 3>>& cameraData)
+{
+    if (isCompoundEyeActive() == true) {
+        size_t omcount = ((CompoundEye*)scene.getCamera())->specializedData.ommatidialCount // protected
+        cameraData.resize (omcount);
+        float3* _data = ((CompoundEye*)scene.getCamera())->getRecordFrame();
+        for (size_t i = 0; i < omcount; ++i) {
+            // copy _data[i] to cameraData[i]
+            cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
+        }
+    } else {
+        std::cout << "Not implemented for non-compound eyes for now\n";
+    }
 }
 
 //------------------------------------------------------------------------------

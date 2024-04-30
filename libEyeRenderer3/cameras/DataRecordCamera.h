@@ -22,7 +22,7 @@ class DataRecordCamera : public GenericCamera {
     }
 
     const float3& getPosition() const { return sbtRecord.data.position; }
-    void setPosition(const float3 pos) 
+    void setPosition(const float3 pos)
     {
       sbtRecord.data.position.x = pos.x;
       sbtRecord.data.position.y = pos.y;
@@ -52,7 +52,7 @@ class DataRecordCamera : public GenericCamera {
       ls.zAxis = {0.0f, 0.0f, 1.0f};
       sbtRecord.data.position = {0.0f, 0.0f, 0.0f};
     }
-      
+
 
     const float3 transformToLocal(const float3& vector) const
     {
@@ -131,8 +131,13 @@ class DataRecordCamera : public GenericCamera {
 
     virtual const CUdeviceptr& getRecordPtr() const {return d_record;}
 
+    virtual float3* getRecordFrame()
+    {
+        std::cout << "DataRecordCamera does not implement getRecordFrame()\n";
+        return nullptr;
+    }
+
   protected:
-    //RaygenPosedContainerRecord<T> sbtRecord; // The below is also of this type
     RaygenRecord<RaygenPosedContainer<T>> sbtRecord; // The sbtRecord associated with this camera
     T& specializedData = sbtRecord.data.specializedData; // Convenience reference
     LocalSpace& ls = sbtRecord.data.localSpace; // Convenience reference
@@ -140,7 +145,7 @@ class DataRecordCamera : public GenericCamera {
   private:
     static const LocalSpace BASE_LOCALSPACE;// A base localspace to use for rotations.
 
-    CUdeviceptr d_record = 0;// Stores the pointer to the SBT record 
+    CUdeviceptr d_record = 0;// Stores the pointer to the SBT record
 
     // Change tracking duplicates (done by keeping an old copy and comparing)
     RaygenPosedContainer<T> previous_sbtRecordData;

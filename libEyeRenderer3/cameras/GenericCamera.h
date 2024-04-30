@@ -43,6 +43,9 @@ class GenericCamera {
     virtual const CUdeviceptr& getRecordPtr() const = 0;
     virtual const char* getEntryFunctionName() const { return DEFAULT_RAYGEN_PROGRAM; }
 
+    // Gets a pointer to host-readable data
+    virtual float3* getRecordFrame() { return nullptr; }
+
     const char* getCameraName() const { return camName.c_str(); }
 
     int32_t samplesPerPixel = 1;

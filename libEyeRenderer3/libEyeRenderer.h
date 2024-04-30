@@ -2,6 +2,8 @@
 #define LIB_EYE_RENDERER_3_H
 #include <cstddef>
 #include <vector_types.h>
+#include <vector> // Use std::vector/array to get data out
+#include <array>
 
 // A simplified ommatidium object, to make it easier to
 // transfer ommatidial information from external API users.
@@ -50,6 +52,9 @@ extern "C"
   void resetCameraPose();
   // Rotates the camera around rot[X,Y,Z] around world axes and then sets translation to pos[X,Y,Z]
   void setCameraPose(float posX, float posY, float posZ, float rotX, float rotY, float rotZ);
+
+  // Gets the current view of the camera as a vector of colour values.
+  void getCameraData(std::vector<std::array<float, 3>>& cameraData);
 
   // Compound-specific
   //int getOmmatidialCameraCount(void);

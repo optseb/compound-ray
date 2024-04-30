@@ -47,9 +47,43 @@ void CompoundEye::reconfigureOmmatidialCount(size_t count)
   }
 }
 
+void CompoundEye::copyOmmatidialDataToHost()
+{
+  std::cout << "Copying Ommatidial 'collected light' data to host.."<<std::endl;
+  CUDA_CHECK( cudaMemcpy(
+              reinterpret_cast<void*>(specializedData.d_compoundBuffer),
+              h_ommatidial_samples,
+              sizeof(float3) * specializedData.ommatidialCount * specializedData.samplesPerOmmatidium,
+              cudaMemcpyDeviceToHost
+              )
+            );
+  CUDA_SYNC_CHECK();
+}
+
+void CompoundEye::computeOmmatidialSampleAverage()
+{
+    float one_over_samples = 1.0f / static_cast<float>(specializedData.samplesPerOmmatidium);
+    for (size_t i = 0u; i < specializedData.ommatidialCount; ++i) {
+        // Zero our average value first
+        ommatidial_average[i] = make_float3 (0.0f, 0.0f, 0.0f);
+        // Re-compute
+        size_t _i = i * specializedData.samplesPerOmmatidium;
+        for (size_t j = 0; j < specializedData.samplesPerOmmatidium; ++j) {
+            ommatidial_average[i] += h_ommatidial_samples[_i + j] * one_over_samples;
+        }
+    }
+}
+
+float3* CompoundEye::getRecordFrame()
+{
+    this->copyOmmatidialDataToHost();
+    this->computeOmmatidialSampleAverage();
+    return this->ommatidial_average;
+}
+
 void CompoundEye::copyOmmatidia(Ommatidium* ommatidia)
 {
-  std::cout << "Copying data.."<<std::endl;
+  std::cout << "Copying Ommatidial data to device.."<<std::endl;
   CUDA_CHECK( cudaMemcpy(
               reinterpret_cast<void*>(specializedData.d_ommatidialArray),
               ommatidia,
@@ -73,6 +107,9 @@ void CompoundEye::allocateOmmatidialMemory()
   printf("\t...allocated at %p\n", specializedData.d_ommatidialArray);
   #endif
   CUDA_SYNC_CHECK();
+
+  // Also allocate ommatidial_average, our final output buffer
+  this->ommatidial_average = (float3*) malloc (sizeof(float3) * specializedData.ommatidialCount);
 }
 void CompoundEye::freeOmmatidialMemory()
 {
@@ -93,6 +130,12 @@ void CompoundEye::freeOmmatidialMemory()
   }
   #endif
   CUDA_SYNC_CHECK();
+
+  // Free our host-side average, too
+  if (this->ommatidial_average != nullptr) {
+    free (this->ommatidial_average);
+    this->ommatidial_average = nullptr;
+  }
 }
 
 void CompoundEye::allocateOmmatidialRandomStates()
@@ -137,6 +180,8 @@ void CompoundEye::allocateCompoundRenderingBuffer()
 {
   size_t blockCount = specializedData.ommatidialCount * specializedData.samplesPerOmmatidium;
   size_t memSize = sizeof(float3)*blockCount;
+  std::cout << "[CAMERA: " << getCameraName() << "] Allocating compound render buffer (size: "<<sizeof(float3)<<" x "<< specializedData.ommatidialCount
+            <<" x " << specializedData.samplesPerOmmatidium  << " (sizof x omcount x omsamples)" << std::endl;
   #ifdef DEBUG
   std::cout << "[CAMERA: " << getCameraName() << "] Clearing and allocating compound render buffer on device. (size: "<<memSize<<", "<<blockCount<<" blocks)"<<std::endl;
   #endif
@@ -146,6 +191,9 @@ void CompoundEye::allocateCompoundRenderingBuffer()
   printf("  ...allocated at %p\n", specializedData.d_compoundBuffer);
   #endif
   CUDA_SYNC_CHECK();
+
+  // Also allocate host-side
+  this->h_ommatidial_samples = (float3*) malloc (sizeof(float3) * blockCount);
 }
 void CompoundEye::freeCompoundRenderingBuffer()
 {
@@ -166,6 +214,11 @@ void CompoundEye::freeCompoundRenderingBuffer()
   }
   #endif
   CUDA_SYNC_CHECK();
+
+  if (this->h_ommatidial_samples != nullptr) {
+    free (this->h_ommatidial_samples);
+    this->h_ommatidial_samples = nullptr;
+  }
 }
 
 void CompoundEye::setSamplesPerOmmatidium(int32_t s)
