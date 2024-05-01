@@ -91,10 +91,16 @@ int main (int argc, char* argv[])
 
         // The main loop
         while (!glfwWindowShouldClose (window)) {
-            glfwPollEvents(); // Check if anything's happened, user-input-wise.
 
+            // For a fixed time-step model, it would be necessary to make a deterministic
+            // wait-with-poll (see morph::Visual::wait(const double&) for an example of how) or
+            // simply place in a fixed time sleep here
+            glfwPollEvents();
+
+            // Your brain model system may well NOT have a controller for moving the camera around,
+            // or it may control the controller.
             if (controller.isActivelyMoving()) {
-                float3 t = controller.getMovementVector();// Local translation
+                float3 t = controller.getMovementVector(); // Local translation
                 translateCamerasLocally (t.x, t.y, t.z);
                 float va = controller.getVerticalRotationAngle();
                 float vh = controller.getHorizontalRotationAngle();
@@ -103,12 +109,14 @@ int main (int argc, char* argv[])
                 dirtyUI = true;
             }
 
-            if (dirtyUI || isCompoundEyeActive()) {
-                /*double ftime =*/ renderFrame();
-                // std::cout << "rendered frame in " << ftime << " ms\n";
-                displayFrame();
-                dirtyUI = false; // Comment this out to force constant re-rendering
-            }
+            // Do ray casting stuff
+            /* double ftime = */ renderFrame();
+            // std::cout << "rendered frame in " << ftime << " ms\n";
+
+            // Do brain stuff
+
+            // For visual feedback, display in the GLFW window
+            displayFrame();
         }
         stop();
 
