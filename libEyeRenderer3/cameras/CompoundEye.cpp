@@ -80,7 +80,7 @@ float3* CompoundEye::getRecordFrame()
 
 void CompoundEye::copyOmmatidia(Ommatidium* ommatidia)
 {
-  std::cout << "Copying Ommatidial data to device.."<<std::endl;
+  std::cout << "Copying Ommatidial data to device.." << std::endl;
   CUDA_CHECK( cudaMemcpy(
               reinterpret_cast<void*>(specializedData.d_ommatidialArray),
               ommatidia,

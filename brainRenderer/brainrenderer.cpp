@@ -1,4 +1,6 @@
 #include <iostream>
+#include <vector>
+#include <array>
 #include <sutil/sutil.h>
 #include "libEyeRenderer.h"
 #include <GLFW/glfw3.h>
@@ -82,6 +84,7 @@ int main (int argc, char* argv[])
     glfwSetKeyCallback (window, keyCallback);
     glfwSetWindowSizeCallback (window, windowSizeCallback);
 
+    std::vector<std::array<float, 3>> ommatidiaData;
     try {
         // Turn off verbose logging
         setVerbosity (false);
@@ -114,6 +117,9 @@ int main (int argc, char* argv[])
             // std::cout << "rendered frame in " << ftime << " ms\n";
 
             // Do brain stuff
+            if (isCompoundEyeActive()) { getCameraData (ommatidiaData); }
+
+            // Also need ommatidial info (in scene.m_ommVecs)
 
             // For visual feedback, display in the GLFW window
             displayFrame();

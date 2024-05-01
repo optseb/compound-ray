@@ -162,6 +162,7 @@ const std::vector<std::string> splitString(const std::string& s, const std::stri
   return output;
 }
 
+// Global function called from loadScene
 void processGLTFNode(
         MulticamScene& scene,
         const tinygltf::Model& model,
@@ -311,7 +312,7 @@ void processGLTFNode(
           camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
           scene.addCamera(camera);
           camera->copyOmmatidia(ommVector.data());
-          scene.addCompoundCamera(camera);
+          scene.addCompoundCamera(camera, ommVector);
 
           eyeDataFile.close();
 
@@ -981,9 +982,10 @@ void MulticamScene::previousCamera()
 //  COMPOUND EYE FUNCTIONS
 //
 //------------------------------------------------------------------------------
-uint32_t MulticamScene::addCompoundCamera(CompoundEye* cameraPtr)
+uint32_t MulticamScene::addCompoundCamera(CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec)
 {
   m_compoundEyes.push_back(cameraPtr);
+  m_ommVecs.push_back(ommVec);
   return (m_compoundEyes.size()-1);
 }
 void MulticamScene::checkIfCurrentCameraIsCompound()

@@ -120,7 +120,8 @@ class MulticamScene
 
 
     void addCamera  ( GenericCamera* cameraPtr  );
-    uint32_t addCompoundCamera  (CompoundEye* cameraPtr); // Returns the position of the compound camera in the array for later reference
+    // Returns the position of the compound camera in the array for later reference
+    uint32_t addCompoundCamera  (CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec);
     void addMesh    ( std::shared_ptr<MeshGroup> mesh )    { m_meshes.push_back( mesh );       }
     void addMaterial( const MaterialData::Pbr& mtl    )    { m_materials.push_back( mtl );     }
     void addBuffer  ( const uint64_t buf_size, const void* data );
@@ -213,6 +214,7 @@ class MulticamScene
 
     // Compound eye stuff (A lot of these are stored precomp values so they don't have to be recomputed every frame)
     std::vector<CompoundEye*>            m_compoundEyes; // Contains pointers to all compound eyes (shared with the m_cameras vector).
+    std::vector<std::vector<Ommatidium>> m_ommVecs;  // The CPU side vector of ommatidia used to create each CompoundEye in m_compoundEyes
     OptixShaderBindingTable              m_compound_sbt             = {};
     OptixPipeline                        m_compound_pipeline        = 0;
     OptixProgramGroup                    m_compound_raygen_group    = 0;
