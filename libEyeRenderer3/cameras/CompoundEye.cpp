@@ -49,14 +49,11 @@ void CompoundEye::reconfigureOmmatidialCount(size_t count)
 
 void CompoundEye::copyOmmatidialDataToHost()
 {
-  std::cout << "Copying Ommatidial 'collected light' data to host.."<<std::endl;
-  CUDA_CHECK( cudaMemcpy(
-              reinterpret_cast<void*>(specializedData.d_compoundBuffer),
-              h_ommatidial_samples,
-              sizeof(float3) * specializedData.ommatidialCount * specializedData.samplesPerOmmatidium,
-              cudaMemcpyDeviceToHost
-              )
-            );
+  // std::cout << "Copying Ommatidial 'collected light' data to host.." << std::endl;
+  CUDA_CHECK( cudaMemcpy(this->h_ommatidial_samples, // destination
+                         reinterpret_cast<void*>(specializedData.d_compoundBuffer), // source
+                         sizeof(float3) * specializedData.ommatidialCount * specializedData.samplesPerOmmatidium,
+                         cudaMemcpyDeviceToHost) );
   CUDA_SYNC_CHECK();
 }
 

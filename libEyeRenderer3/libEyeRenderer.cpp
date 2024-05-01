@@ -63,6 +63,7 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+#include <stdexcept>
 
 //#define USE_IAS // WAR for broken direct intersection of GAS on non-RTX cards
 #ifdef BUFFER_TYPE_CUDA_DEVICE
@@ -415,17 +416,17 @@ void setCameraPose(float posX, float posY, float posZ, float rotX, float rotY, f
 
 void getCameraData (std::vector<std::array<float, 3>>& cameraData)
 {
-    if (isCompoundEyeActive() == true) {
-        size_t omcount = ((CompoundEye*)scene.getCamera())->specializedData.ommatidialCount // protected
-        cameraData.resize (omcount);
-        float3* _data = ((CompoundEye*)scene.getCamera())->getRecordFrame();
-        for (size_t i = 0; i < omcount; ++i) {
-            // copy _data[i] to cameraData[i]
-            cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
-        }
-    } else {
-        std::cout << "Not implemented for non-compound eyes for now\n";
+  if (isCompoundEyeActive() == true) {
+    size_t omcount = ((CompoundEye*)scene.getCamera())->getOmmatidialCount();
+    cameraData.resize (omcount);
+    float3* _data = ((CompoundEye*)scene.getCamera())->getRecordFrame();
+    for (size_t i = 0; i < omcount; ++i) {
+      // copy _data[i] to cameraData[i]
+      cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
     }
+  } else {
+    throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
+  }
 }
 
 //------------------------------------------------------------------------------
