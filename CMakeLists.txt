@@ -383,6 +383,9 @@ add_subdirectory( libEyeRenderer3 )
 
 add_subdirectory( newGuiEyeRenderer )
 
+# Copy of newGuiEyeRenderer with a shim to incorporate a brain model
+add_subdirectory(brainRenderer)
+
 # NVidia's sutil library.  The rules to build it are found in the subdirectory.
 add_subdirectory(sutil)
 # Third-party support libraries.
