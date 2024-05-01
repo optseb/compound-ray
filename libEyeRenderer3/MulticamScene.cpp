@@ -226,12 +226,12 @@ void processGLTFNode(
         // Form camera objects
         if( gltf_camera.type == "orthographic" )
         {
-          std::cout << "Adding orthographic camera..."<<std::endl;
           OrthographicCamera* camera = new OrthographicCamera(gltf_camera.name);
           camera->setPosition(eye);
           camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
           camera->setXYscale(gltf_camera.orthographic.xmag, gltf_camera.orthographic.ymag);
-          scene.addCamera(camera);
+          int cidx = scene.addCamera(camera);
+          std::cout << "Added orthographic camera " << cidx << std::endl;
           return;
         }
 
@@ -241,7 +241,8 @@ void processGLTFNode(
           PanoramicCamera* camera = new PanoramicCamera(gltf_camera.name);
           camera->setPosition(eye);
           camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
-          scene.addCamera(camera);
+          int cidx = scene.addCamera(camera);
+          std::cout << "Added panorama camera " << cidx << std::endl;
           return;
         }
 
@@ -310,22 +311,21 @@ void processGLTFNode(
           CompoundEye* camera = new CompoundEye(gltf_camera.name, projectionShader, ommVector.size(), usedEyeDataPath);
           camera->setPosition(eye);
           camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
-          scene.addCamera(camera);
+          int cidx = scene.addCamera(camera);
           camera->copyOmmatidia(ommVector.data());
-          scene.addCompoundCamera(camera, ommVector);
+          scene.addCompoundCamera(cidx, camera, ommVector);
 
           eyeDataFile.close();
 
           return;
         }
 
-        std::cout << "Adding perspective camera..." << std::endl;
-
         PerspectiveCamera* camera = new PerspectiveCamera(gltf_camera.name);
         camera->setPosition(eye);
         camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
         camera->setYFOV(yfov);
-        scene.addCamera( camera );
+        int cidx = scene.addCamera( camera );
+        std::cout << "Added perspective camera..." << cidx << std::endl;
     }
     else if( gltf_node.mesh != -1 && isObjectsExtraValueTrue(model.meshes[gltf_node.mesh].extras, "hitbox") )
     {
@@ -936,10 +936,12 @@ void MulticamScene::cleanup()
 //
 //------------------------------------------------------------------------------
 
-void MulticamScene::addCamera(GenericCamera* cameraPtr)
+int MulticamScene::addCamera(GenericCamera* cameraPtr)
 {
-  m_cameras.push_back(cameraPtr);
+  int i = m_cameras.size();
+  m_cameras[i] = cameraPtr;
   checkIfCurrentCameraIsCompound();
+  return i;
 }
 GenericCamera* MulticamScene::getCamera()
 {
@@ -982,18 +984,19 @@ void MulticamScene::previousCamera()
 //  COMPOUND EYE FUNCTIONS
 //
 //------------------------------------------------------------------------------
-uint32_t MulticamScene::addCompoundCamera(CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec)
+uint32_t MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec)
 {
-  m_compoundEyes.push_back(cameraPtr);
-  m_ommVecs.push_back(ommVec);
+  m_compoundEyes[cam_idx] = cameraPtr;
+  m_ommVecs[cam_idx] = ommVec;
+  std::cout << "Inserted ommVec of size " << m_ommVecs[cam_idx].size()
+            << " into m_ommVecs[" << cam_idx << "].\n";
   return (m_compoundEyes.size()-1);
 }
 void MulticamScene::checkIfCurrentCameraIsCompound()
 {
   GenericCamera* cam = getCamera();
   bool out = false;
-  for(size_t i = 0; i<m_compoundEyes.size(); i++)
-    out |= cam == m_compoundEyes[i];
+  for (auto ce : m_compoundEyes) { out |= cam == ce.second; }
   m_selectedCameraIsCompound = out;
 }
 

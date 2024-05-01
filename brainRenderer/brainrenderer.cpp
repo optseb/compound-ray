@@ -1,14 +1,37 @@
 #include <iostream>
 #include <vector>
 #include <array>
+
+// All for MulticamScene...
+#include <glad/glad.h> // Needs to be included before gl_interop
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+#include <optix.h>
+#include <optix_stubs.h>
+#include <sampleConfig.h>
+#include <cuda/Light.h>
+#include <sutil/Camera.h>
+#include <sutil/CUDAOutputBuffer.h>
+#include <sutil/Exception.h>
+#include <sutil/GLDisplay.h>
+#include <sutil/Matrix.h>
 #include <sutil/sutil.h>
+#include <sutil/vec_math.h>
+// and finally
+#include "MulticamScene.h"
+
 #include "libEyeRenderer.h"
+
 #include <GLFW/glfw3.h>
 #include <sutil/vec_math.h>
 #include "BasicController.h"
 
+
 bool dirtyUI = true; // a flag to keep track of if the UI has changed in any way
 BasicController controller;
+
+// scene exists at global scope in libEyeRenderer.so
+extern MulticamScene scene;
 
 static void keyCallback (GLFWwindow* window, int32_t key, int32_t /*scancode*/, int32_t action, int32_t /*mods*/)
 {
@@ -112,16 +135,30 @@ int main (int argc, char* argv[])
                 dirtyUI = true;
             }
 
-            // Do ray casting stuff
+            // Do ray casting
             /* double ftime = */ renderFrame();
             // std::cout << "rendered frame in " << ftime << " ms\n";
 
-            // Do brain stuff
-            if (isCompoundEyeActive()) { getCameraData (ommatidiaData); }
+            // Access data so that a brain model could be fed
+            if (isCompoundEyeActive()) {
 
-            // Also need ommatidial info (in scene.m_ommVecs)
+                getCameraData (ommatidiaData);
 
-            // For visual feedback, display in the GLFW window
+                // Also need ommatidial info (in scene.m_ommVecs; scene exists at global scope)
+                std::cout << "camIndex " << scene.getCameraIndex() << "; size of ommatidiaData is " << ommatidiaData.size()
+                          << ", size of m_ommVecs is " << scene.m_ommVecs.size()
+                          << " and size of our ommVec is " << scene.m_ommVecs[scene.getCameraIndex()].size() << std::endl;
+#if 0
+                for (auto omm : scene.m_ommVecs[scene.getCameraIndex()]) {
+                    std::cout << "coord (" << omm.relativePosition.x
+                              << "," << omm.relativePosition.y << "," << omm.relativePosition.z << ")"
+                              << " angle (" << omm.relativeDirection.x
+                              << "," << omm.relativeDirection.y << "," << omm.relativeDirection.z << ")"
+                              << ") acceptance: " << omm.acceptanceAngleRadians << "\n";
+                }
+#endif
+            }
+            // For visual feedback, display in the GLFW window (if required)
             displayFrame();
         }
         stop();
