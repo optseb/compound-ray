@@ -104,7 +104,8 @@ int main (int argc, char* argv[])
             }
 
             if (dirtyUI || isCompoundEyeActive()) {
-                renderFrame();
+                /*double ftime =*/ renderFrame();
+                // std::cout << "rendered frame in " << ftime << " ms\n";
                 displayFrame();
                 dirtyUI = false; // Comment this out to force constant re-rendering
             }

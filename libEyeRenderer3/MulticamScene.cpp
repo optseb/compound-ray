@@ -209,7 +209,7 @@ void processGLTFNode(
         // We're dealing with cameras
         const auto& gltf_camera = model.cameras[ gltf_node.camera ];
         std::cout << "============================"<<std::endl<<"Processing camera '" << gltf_camera.name << "'" << std::endl
-            << "\ttype: " << gltf_camera.type << std::endl;
+                  << "\ttype: " << gltf_camera.type << std::endl;
 
         // Get configured camera information and local axis
         const float3 upAxis      = make_float3( node_xform*make_float4_from_double( 0.0f, 1.0f,  0.0f, 0.0f ) );
@@ -605,7 +605,7 @@ void loadScene( const std::string& filename, MulticamScene& scene )
         const uint64_t buf_size = gltf_buffer.data.size();
         std::cerr << "Processing glTF buffer '" << gltf_buffer.name << "'\n"
                   << "\tbyte size: " << buf_size << "\n"
-                  << "\turi      : " << gltf_buffer.uri << std::endl;
+                  << "\turi      : " << (buf_size > 128u ? gltf_buffer.uri.substr(0, 128) + std::string("...") : gltf_buffer.uri) << std::endl;
 
         scene.addBuffer( buf_size,  gltf_buffer.data.data() );
     }
