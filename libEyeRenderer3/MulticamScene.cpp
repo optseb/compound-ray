@@ -424,11 +424,11 @@ void processGLTFNode(
 
                 if (vertex_colours_gltf_accessor.type == TINYGLTF_TYPE_VEC4) {
 
-                  const tinygltf::BufferView& colour_buffer_view = model.bufferViews[ vertex_colours_gltf_accessor.bufferView ];
-                  const tinygltf::Buffer& colour_buffer = model.buffers[ colour_buffer_view.buffer ];
+                  // const tinygltf::BufferView& colour_buffer_view = model.bufferViews[ vertex_colours_gltf_accessor.bufferView ]; // currently unused
+                  // const tinygltf::Buffer& colour_buffer = model.buffers[ colour_buffer_view.buffer ]; // currently unused
 
                   // Determine the type and component type of the vertex_colours_gltf_accessor
-                  const int numComponents = tinygltf::GetNumComponentsInType(vertex_colours_gltf_accessor.type);
+                  // const int numComponents = tinygltf::GetNumComponentsInType(vertex_colours_gltf_accessor.type); // currently unused
                   int componentType = vertex_colours_gltf_accessor.componentType;
 
                   // TODO: Consider using `isObjectsExtraValueTrue(model.meshes[gltf_node.mesh].extras, "vertex-colours") here
@@ -485,11 +485,11 @@ void processGLTFNode(
                 {
                   std::cerr << "\t\t\tWarning: Vertex colours are of type vec3.\n";
 
-                  const tinygltf::BufferView& colour_buffer_view = model.bufferViews[ vertex_colours_gltf_accessor.bufferView ];
-                  const tinygltf::Buffer& colour_buffer = model.buffers[ colour_buffer_view.buffer ];
+                  // const tinygltf::BufferView& colour_buffer_view = model.bufferViews[ vertex_colours_gltf_accessor.bufferView ]; // unused
+                  // const tinygltf::Buffer& colour_buffer = model.buffers[ colour_buffer_view.buffer ]; // unused
 
                   // Determine the type and component type of the vertex_colours_gltf_accessor
-                  const int numComponents = tinygltf::GetNumComponentsInType(vertex_colours_gltf_accessor.type);
+                  // const int numComponents = tinygltf::GetNumComponentsInType(vertex_colours_gltf_accessor.type); // unused
                   int componentType = vertex_colours_gltf_accessor.componentType;
 
                   // TODO: Consider using `isObjectsExtraValueTrue(model.meshes[gltf_node.mesh].extras, "vertex-colours") here
@@ -910,8 +910,9 @@ void MulticamScene::finalize()
     m_sbt.raygenRecord = c->getRecordPtr();
 
     m_scene_aabb.invalidate();
-    for( const auto mesh: m_meshes )
+    for( const auto& mesh: m_meshes ) {
         m_scene_aabb.include( mesh->world_aabb );
+    }
 
     checkIfCurrentCameraIsCompound();
     //if( !m_cameras.empty() )
@@ -1280,7 +1281,7 @@ void MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
         d_temp_compactedSizes.allocIfRequired( batchNGASes );
 
         // sum of build output size of GASes, excluding alignment
-        size_t batchTempOutputSize = 0;
+        // size_t batchTempOutputSize = 0; // unused
         // sum of size of compacted GASes
         size_t batchCompactedSize = 0;
 
@@ -1683,7 +1684,7 @@ void MulticamScene::reconfigureSBTforCurrentCamera(bool force)
   size_t sizeof_log = sizeof( log );
 
   // Here, we regenerate the raygen pipeline if the camera has changed types:
-  if(getCameraIndex() != lastPipelinedCamera || lastPipelinedCamera == -1 || force)
+  if(getCameraIndex() != lastPipelinedCamera || lastPipelinedCamera == std::numeric_limits<size_t>::max() || force)
   {
     lastPipelinedCamera = currentCamera;// update the pointer
     raygen_prog_group_desc.raygen.entryFunctionName = c->getEntryFunctionName();
@@ -1744,7 +1745,7 @@ void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
     // Hitgroup Records
     {
         std::vector<HitGroupRecord> hitgroup_records;
-        for( const auto mesh : m_meshes )
+        for( const auto& mesh : m_meshes )
         {
             for( size_t i = 0; i < mesh->material_idx.size(); ++i )
             {
@@ -1801,7 +1802,7 @@ bool MulticamScene::isInsideHitGeometry(float3 worldPos, std::string name, bool 
   // Search through each of the m_hitboxMeshes until we find the hitbox mesh we care about
   sutil::hitscan::TriangleMesh* hitboxMesh = nullptr;
 
-  for(int i = 0; i<m_hitboxMeshes.size(); i++)
+  for(unsigned int i = 0u; i<m_hitboxMeshes.size(); i++)
   {
     if(m_hitboxMeshes[i].name == name)
     {
@@ -1833,11 +1834,11 @@ bool MulticamScene::isInsideHitGeometry(float3 worldPos, std::string name, bool 
 // TODO: Each of these below (and the one above) should share a "get geometry by name" method.
 float3 MulticamScene::getGeometryMaxBounds(std::string name)
 {
-  for(int i = 0; i<m_hitboxMeshes.size(); i++)
+  for(unsigned int i = 0u; i<m_hitboxMeshes.size(); i++)
     if(m_hitboxMeshes[i].name == name)
       return m_hitboxMeshes[i].worldAabb.m_max;
 
-  for(int i = 0; i<m_meshes.size(); i++)
+  for(unsigned int i = 0u; i<m_meshes.size(); i++)
     if(m_meshes[i]->name == name)
       return m_meshes[i]->world_aabb.m_max;
 
@@ -1845,11 +1846,11 @@ float3 MulticamScene::getGeometryMaxBounds(std::string name)
 }
 float3 MulticamScene::getGeometryMinBounds(std::string name)
 {
-  for(int i = 0; i<m_hitboxMeshes.size(); i++)
+  for(unsigned int i = 0u; i<m_hitboxMeshes.size(); i++)
     if(m_hitboxMeshes[i].name == name)
       return m_hitboxMeshes[i].worldAabb.m_min;
 
-  for(int i = 0; i<m_meshes.size(); i++)
+  for(unsigned int i = 0u; i<m_meshes.size(); i++)
     if(m_meshes[i]->name == name)
       return m_meshes[i]->world_aabb.m_min;
 

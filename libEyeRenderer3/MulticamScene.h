@@ -45,6 +45,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <limits>
 
 #include "GlobalParameters.h"
 #include "cameras/GenericCameraDataTypes.h"
@@ -240,7 +241,7 @@ class MulticamScene
     CUdeviceptr                          m_d_ias_output_buffer      = 0;
 
     size_t                               currentCamera              = 0;
-    size_t                               lastPipelinedCamera        = -1;
+    size_t                               lastPipelinedCamera        = std::numeric_limits<size_t>::max();
 };
 
 

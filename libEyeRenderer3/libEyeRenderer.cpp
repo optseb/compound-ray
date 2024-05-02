@@ -332,7 +332,7 @@ void gotoCamera(int index)
 bool gotoCameraByName(char* name)
 {
   scene.setCurrentCamera(0);
-  for(auto i = 0; i<scene.getCameraCount(); i++)
+  for(auto i = 0u; i<scene.getCameraCount(); i++)
   {
     if(strcmp(name, scene.getCamera()->getCameraName()) == 0)
       return true;

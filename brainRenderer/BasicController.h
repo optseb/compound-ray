@@ -31,7 +31,6 @@ public:
     // Returns true if an update is made
     bool ingestKeyAction (int32_t key, int32_t action)
     {
-        bool output = false;
         std::bitset<12> mvst_cpy = this->move_state;
         if (action == GLFW_PRESS || action == GLFW_REPEAT) {
             if (key == GLFW_KEY_W) {
