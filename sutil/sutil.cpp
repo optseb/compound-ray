@@ -231,8 +231,11 @@ cudaTextureObject_t loadTexture( const std::string& filename, float3 default_col
 
 void initGL()
 {
-    if( !gladLoadGL() )
+    int glad_gl_version = gladLoadGL();
+    if( !glad_gl_version )
         throw Exception( "Failed to initialize GL" );
+
+    printf("sutil/initGL: Loaded OpenGL %d.%d\n", glad_gl_version/10000, glad_gl_version % 10000);
 
     GL_CHECK( glClearColor( 0.212f, 0.271f, 0.31f, 1.0f ) );
     GL_CHECK( glClear( GL_COLOR_BUFFER_BIT ) );
@@ -244,9 +247,9 @@ void initGLFW()
     if( !glfwInit() )
         throw Exception( "Failed to initialize GLFW" );
 
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
-    glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );  // To make Apple happy -- should not be needed
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
+    //glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );  // To make Apple happy -- should not be needed
     glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
     glfwWindowHint( GLFW_VISIBLE, GLFW_FALSE );
 

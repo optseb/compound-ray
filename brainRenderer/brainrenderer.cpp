@@ -22,9 +22,13 @@
 
 #include "libEyeRenderer.h"
 
+//#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <sutil/vec_math.h>
 #include "BasicController.h"
+
+#define VISUAL_NO_GL_INCLUDE 1
+//#include <morph/Visual.h>
 
 
 bool dirtyUI = true; // a flag to keep track of if the UI has changed in any way
@@ -101,6 +105,9 @@ int main (int argc, char* argv[])
         return 1;
     }
 
+//    morph::Visual<> v (1000, 750, "Graphics");
+//    v.addLabel ("Graphics", {0,0,0});
+
     // Grab a pointer to the window
     auto window = static_cast<GLFWwindow*>(getWindowPointer());
     // Attach callbacks
@@ -122,6 +129,8 @@ int main (int argc, char* argv[])
             // wait-with-poll (see morph::Visual::wait(const double&) for an example of how) or
             // simply place in a fixed time sleep here
             glfwPollEvents();
+
+            //v.render();
 
             // Your brain model system may well NOT have a controller for moving the camera around,
             // or it may control the controller.
@@ -148,6 +157,8 @@ int main (int argc, char* argv[])
                 std::cout << "camIndex " << scene.getCameraIndex() << "; size of ommatidiaData is " << ommatidiaData.size()
                           << ", size of m_ommVecs is " << scene.m_ommVecs.size()
                           << " and size of our ommVec is " << scene.m_ommVecs[scene.getCameraIndex()].size() << std::endl;
+
+
 #if 0
                 for (auto omm : scene.m_ommVecs[scene.getCameraIndex()]) {
                     std::cout << "coord (" << omm.relativePosition.x
