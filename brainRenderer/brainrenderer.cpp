@@ -22,13 +22,20 @@
 
 #include "libEyeRenderer.h"
 
-//#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <sutil/vec_math.h>
 #include "BasicController.h"
 
-#define VISUAL_NO_GL_INCLUDE 1
-//#include <morph/Visual.h>
+// Include after glad and glfw header includes. I'm explicitly checking here
+#ifdef _glfw3_h_
+# if defined __gl3_h_ || defined __gl_h_ // could instead check __glad_h_ here
+#  include <morph/Visual.h>
+# else
+#  error "GL headers were not #included before morph/Visual.h as expected"
+# endif
+#else
+# error "glfw3.h header was not #included before morph/Visual.h as expected"
+#endif
 
 
 bool dirtyUI = true; // a flag to keep track of if the UI has changed in any way
@@ -105,9 +112,6 @@ int main (int argc, char* argv[])
         return 1;
     }
 
-//    morph::Visual<> v (1000, 750, "Graphics");
-//    v.addLabel ("Graphics", {0,0,0});
-
     // Grab a pointer to the window
     auto window = static_cast<GLFWwindow*>(getWindowPointer());
     // Attach callbacks
@@ -122,15 +126,24 @@ int main (int argc, char* argv[])
         std::cout << "Loading glTF file \"" << path << "\"..." << std::endl;
         loadGlTFscene (path.c_str());
 
+        // Create a morphologica window to render the eye/sensor
+        morph::Visual<> v (1000, 750, "Morphologica graphics");
+
         // The main loop
         while (!glfwWindowShouldClose (window)) {
 
+            // Switch to morphologica context, poll, render and then release
+            v.setContext();
+            v.poll();
+            v.render();
+            v.releaseContext();
+
+            // Set compound ray window context and poll for events
+            glfwMakeContextCurrent (window);
             // For a fixed time-step model, it would be necessary to make a deterministic
             // wait-with-poll (see morph::Visual::wait(const double&) for an example of how) or
             // simply place in a fixed time sleep here
             glfwPollEvents();
-
-            //v.render();
 
             // Your brain model system may well NOT have a controller for moving the camera around,
             // or it may control the controller.
@@ -171,6 +184,8 @@ int main (int argc, char* argv[])
             }
             // For visual feedback, display in the GLFW window (if required)
             displayFrame();
+
+            glfwMakeContextCurrent (nullptr);
         }
         stop();
 
