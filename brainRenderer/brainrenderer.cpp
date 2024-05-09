@@ -139,8 +139,6 @@ int main (int argc, char* argv[])
         eyevm->finalize();
         auto eyevm_ptr = v.addVisualModel (eyevm);
 
-        std::cout << "gprog: " << v.shaders.gprog
-                  << " tprog: " << v.shaders.tprog << std::endl;
         // The main loop
         while (!glfwWindowShouldClose (window)) {
 
@@ -185,12 +183,14 @@ int main (int argc, char* argv[])
 
             glfwMakeContextCurrent (nullptr);
         }
-        stop();
 
     } catch (std::exception& e) {
         std::cerr << "Caught exception: " << e.what() << "\n";
         return 1;
     }
+
+    // Stop goes at end *after* morph::Visual has gone out of scope.
+    stop();
 
     return 0;
 }
