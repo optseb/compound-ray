@@ -247,6 +247,8 @@ void displayFrame(void)
   int framebuf_res_x = 0;   // The display's resolution (could be HDPI res)
   int framebuf_res_y = 0;   //
   glfwGetFramebufferSize( window, &framebuf_res_x, &framebuf_res_y );
+
+  glfwMakeContextCurrent (window); // Just in case the user just selected another window
   gl_display.display(
           outputBuffer.width(),
           outputBuffer.height(),
