@@ -50,8 +50,7 @@
 
 bool dirtyUI = true; // a flag to keep track of if the UI has changed in any way
 BasicController controller;
-bool simple_flared = false; // simple flared tubes in morphologica window
-
+bool simple_flared = true; // simple flared tubes in morphologica window
 
 // scene exists at global scope in libEyeRenderer.so
 extern MulticamScene scene;

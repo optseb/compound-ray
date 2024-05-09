@@ -317,7 +317,7 @@ namespace comray {
         std::vector<Ommatidium>* ommatidia = nullptr;
     private:
         // Draw simple flares or our tweaked ommatidial tubes? (runtime modifiable)
-        bool simple_flared_tubes = false;
+        bool simple_flared_tubes = true;
     };
 
 } // namespace comray
