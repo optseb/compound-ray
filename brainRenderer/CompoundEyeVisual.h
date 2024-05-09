@@ -67,10 +67,9 @@ namespace comray {
             }
 
             for (size_t i = 0u; i < n_omm; ++i) {
-                std::array<float, 3> colour = (*ommData)[i];
                 // Update the 3 RGB values in vertexColors tube_vertices times
                 for (int j = 0; j < tube_vertices; ++j) {
-                    this->vertex_push (colour, this->vertexColors);
+                    this->vertex_push ((*ommData)[i], this->vertexColors);
                 }
             }
 
