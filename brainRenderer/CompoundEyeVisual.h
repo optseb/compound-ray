@@ -42,6 +42,37 @@ namespace comray {
             this->ommatidia = _ommatidia;
         }
 
+        static constexpr int tube_faces = 18;
+        // VisualModel::computeTube makes this many vertices per tube:
+        static constexpr int tube_vertices = tube_faces * 4 + 2;
+
+        void updateColours()
+        {
+            if (ommData == nullptr) { return; }
+            if (ommData->empty()) { return; }
+            size_t n_verts = this->vertexColors.size(); // should be tube_vertices * n_omm
+            if (n_verts == 0u) { return; } // model doesn't exist yet
+
+            this->vertexColors.clear(); // Could re-write not clear/push
+            size_t n_omm = ommData->size();
+
+            // 3 colours, n_omm tubes, tube_vertices vertices per tube.
+            if (n_verts != 3u * n_omm * static_cast<unsigned int>(tube_vertices)) {
+                throw std::runtime_error ("CompoundEyeVisual: n_verts/n_omm sizes mismatch!");
+            }
+
+            for (size_t i = 0u; i < n_omm; ++i) {
+                std::array<float, 3> colour = (*ommData)[i];
+                // Update the 3 RGB values in vertexColors tube_vertices times
+                for (int j = 0; j < tube_vertices; ++j) {
+                    this->vertex_push (colour, this->vertexColors);
+                }
+            }
+
+            // Lastly, this call copies vertexColors (etc) into the OpenGL memory space
+            this->reinit_colour_buffer();
+        }
+
         //! Initialize vertex buffer objects and vertex array object.
         void initializeVertices()
         {
@@ -50,10 +81,10 @@ namespace comray {
             this->vertexColors.clear();
             this->indices.clear();
 
+            // Sanity check our data pointers and return or throw
             if (ommData == nullptr || ommatidia == nullptr) { return; }
             if (ommatidia != nullptr && ommatidia->empty()) { return; }
             if (ommData != nullptr && ommData->empty()) { return; }
-
             if (ommData->size() != ommatidia->size()) {
                 throw std::runtime_error ("sizes mismatch!");
             }
@@ -74,7 +105,7 @@ namespace comray {
                 morph::vec<float, 3> end_coord = start_coord + dir * 0.01f; // just a hack
                 float radius = 0.005f; // just a hack
                 std::array<float, 3> colour = (*ommData)[i];
-                this->computeTube (this->idx, start_coord, end_coord, colour, colour, radius, 18);
+                this->computeTube (this->idx, start_coord, end_coord, colour, colour, radius, tube_faces);
             }
         }
 

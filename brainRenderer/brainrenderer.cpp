@@ -140,13 +140,23 @@ int main (int argc, char* argv[])
         auto eyevm_ptr = v.addVisualModel (eyevm);
 
         // The main loop
+        size_t curr_eye_size = 0u;
+        size_t last_eye_size = 0u;
         while (!glfwWindowShouldClose (window)) {
 
             // Switch to morphologica context, poll, render and then release
             v.setContext();
             v.poll();
             eyevm_ptr->ommatidia = ommatidia;
-            eyevm_ptr->reinit(); // reinit_colour() would be best
+            if (eyevm_ptr->ommatidia != nullptr) {
+                curr_eye_size = eyevm_ptr->ommatidia->size();
+                if (curr_eye_size != last_eye_size) {
+                    eyevm_ptr->reinit();
+                    last_eye_size = curr_eye_size;
+                } else {
+                    eyevm_ptr->updateColours();
+                }
+            }
             v.render();
             v.releaseContext();
 
