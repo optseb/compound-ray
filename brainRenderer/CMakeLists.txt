@@ -63,7 +63,7 @@ include_directories(BEFORE ${MORPH_INCLUDE_PATH}/include) # Allows GL3/gl3.h to 
 include_directories(BEFORE ${MORPH_INCLUDE_PATH})         # Allows morph/Header.h to be found
 
 set(MORPH_LIBS_CORE ${ARMADILLO_LIBRARY} ${ARMADILLO_LIBRARIES} ${HDF5_C_LIBRARIES})
-set(MORPH_LIBS_GL OpenGL::GL Freetype::Freetype) # NOT glfw, compound ray already includes
+set(MORPH_LIBS_GL Freetype::Freetype) # NOT glfw, compound ray already includes. OpenGL::GL should be dynamically loaded by glad
 #
 # morphologica incantations complete
 #

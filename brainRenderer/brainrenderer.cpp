@@ -22,6 +22,7 @@
 
 #include "libEyeRenderer.h"
 
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <sutil/vec_math.h>
 #include "BasicController.h"
@@ -37,6 +38,7 @@
 # error "glfw3.h header was not #included before morph/Visual.h as expected"
 #endif
 
+#include "CompoundEyeVisual.h"
 
 bool dirtyUI = true; // a flag to keep track of if the UI has changed in any way
 BasicController controller;
@@ -119,6 +121,7 @@ int main (int argc, char* argv[])
     glfwSetWindowSizeCallback (window, windowSizeCallback);
 
     std::vector<std::array<float, 3>> ommatidiaData;
+    std::vector<Ommatidium>* ommatidia = nullptr;
     try {
         // Turn off verbose logging
         setVerbosity (false);
@@ -127,14 +130,25 @@ int main (int argc, char* argv[])
         loadGlTFscene (path.c_str());
 
         // Create a morphologica window to render the eye/sensor
-        morph::Visual<> v (1000, 750, "Morphologica graphics");
+        morph::Visual<> v (2000, 1200, "Morphologica graphics");
+        v.setSceneTransZ (-0.8f);
 
+        morph::vec<float, 3> offset = { 0,0,0 };
+        auto eyevm = std::make_unique<comray::CompoundEyeVisual<>> (offset, &ommatidiaData, ommatidia);
+        v.bindmodel (eyevm);
+        eyevm->finalize();
+        auto eyevm_ptr = v.addVisualModel (eyevm);
+
+        std::cout << "gprog: " << v.shaders.gprog
+                  << " tprog: " << v.shaders.tprog << std::endl;
         // The main loop
         while (!glfwWindowShouldClose (window)) {
 
             // Switch to morphologica context, poll, render and then release
             v.setContext();
             v.poll();
+            eyevm_ptr->ommatidia = ommatidia;
+            eyevm_ptr->reinit(); // reinit_colour() would be best
             v.render();
             v.releaseContext();
 
@@ -163,24 +177,8 @@ int main (int argc, char* argv[])
 
             // Access data so that a brain model could be fed
             if (isCompoundEyeActive()) {
-
                 getCameraData (ommatidiaData);
-
-                // Also need ommatidial info (in scene.m_ommVecs; scene exists at global scope)
-                std::cout << "camIndex " << scene.getCameraIndex() << "; size of ommatidiaData is " << ommatidiaData.size()
-                          << ", size of m_ommVecs is " << scene.m_ommVecs.size()
-                          << " and size of our ommVec is " << scene.m_ommVecs[scene.getCameraIndex()].size() << std::endl;
-
-
-#if 0
-                for (auto omm : scene.m_ommVecs[scene.getCameraIndex()]) {
-                    std::cout << "coord (" << omm.relativePosition.x
-                              << "," << omm.relativePosition.y << "," << omm.relativePosition.z << ")"
-                              << " angle (" << omm.relativeDirection.x
-                              << "," << omm.relativeDirection.y << "," << omm.relativeDirection.z << ")"
-                              << ") acceptance: " << omm.acceptanceAngleRadians << "\n";
-                }
-#endif
+                ommatidia = &scene.m_ommVecs[scene.getCameraIndex()];
             }
             // For visual feedback, display in the GLFW window (if required)
             displayFrame();
