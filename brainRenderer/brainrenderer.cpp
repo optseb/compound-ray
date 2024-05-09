@@ -2,6 +2,12 @@
 #include <vector>
 #include <array>
 
+// Currently, FPS is simply output very fast to stdout
+//#define PROFILE_FPS 1
+#ifdef PROFILE_FPS
+# include <chrono>
+#endif
+
 // All for MulticamScene...
 #include <glad/glad.h> // Needs to be included before gl_interop
 #include <cuda_runtime.h>
@@ -27,7 +33,8 @@
 #include <sutil/vec_math.h>
 #include "BasicController.h"
 
-// Include after glad and glfw header includes. I'm explicitly checking here
+// Include morph/Visual.h *after* glad and glfw header includes. I'm explicitly checking here so I
+// can emit a compile error
 #ifdef _glfw3_h_
 # if defined __gl3_h_ || defined __gl_h_ // could instead check __glad_h_ here
 #  include <morph/Visual.h>
@@ -38,10 +45,13 @@
 # error "glfw3.h header was not #included before morph/Visual.h as expected"
 #endif
 
+// Our compound eye VisualModel class
 #include "CompoundEyeVisual.h"
 
 bool dirtyUI = true; // a flag to keep track of if the UI has changed in any way
 BasicController controller;
+bool simple_flared = false; // simple flared tubes in morphologica window
+
 
 // scene exists at global scope in libEyeRenderer.so
 extern MulticamScene scene;
@@ -52,6 +62,9 @@ static void keyCallback (GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
     if (action == GLFW_PRESS) {
         if(key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) {
             glfwSetWindowShouldClose (window, true);
+        } else if (key == GLFW_KEY_T) {
+            // Toggle the morph view
+            simple_flared = !simple_flared;
         } else {
             // Camera changing
             if (key == GLFW_KEY_N) {
@@ -132,6 +145,7 @@ int main (int argc, char* argv[])
         // Create a morphologica window to render the eye/sensor
         morph::Visual<> v (2000, 1200, "Morphologica graphics");
         v.setSceneTransZ (-0.8f);
+        v.lightingEffects();
 
         morph::vec<float, 3> offset = { 0,0,0 };
         auto eyevm = std::make_unique<comray::CompoundEyeVisual<>> (offset, &ommatidiaData, ommatidia);
@@ -142,19 +156,33 @@ int main (int argc, char* argv[])
         // The main loop
         size_t curr_eye_size = 0u;
         size_t last_eye_size = 0u;
-        while (!glfwWindowShouldClose (window)) {
 
+#ifdef PROFILE_FPS
+        using namespace std::chrono;
+        using sc = std::chrono::steady_clock;
+        sc::time_point t0 = sc::now(), t1 = sc::now();
+#endif
+        while (!glfwWindowShouldClose (window)) {
+#ifdef PROFILE_FPS
+            sc::duration t_d = t1 - t0;
+            std::cout << "FPS " << 1000000.0 / static_cast<double>(duration_cast<microseconds>(t_d).count()) << "\n";
+            t0 = sc::now();
+#endif
             // Switch to morphologica context, poll, render and then release
             v.setContext();
             v.poll();
             eyevm_ptr->ommatidia = ommatidia;
             if (eyevm_ptr->ommatidia != nullptr) {
-                curr_eye_size = eyevm_ptr->ommatidia->size();
-                if (curr_eye_size != last_eye_size) {
-                    eyevm_ptr->reinit();
-                    last_eye_size = curr_eye_size;
+                if (eyevm_ptr->get_simple_flared() != simple_flared) {
+                    eyevm_ptr->toggle_simple_flared();
                 } else {
-                    eyevm_ptr->updateColours();
+                    curr_eye_size = eyevm_ptr->ommatidia->size();
+                    if (curr_eye_size != last_eye_size) {
+                        eyevm_ptr->reinit();
+                        last_eye_size = curr_eye_size;
+                    } else {
+                        eyevm_ptr->updateColours(); // 4x faster to just updateColours
+                    }
                 }
             }
             v.render();
@@ -192,6 +220,9 @@ int main (int argc, char* argv[])
             displayFrame();
 
             glfwMakeContextCurrent (nullptr);
+#ifdef PROFILE_FPS
+            t1 = sc::now();
+#endif
         }
 
     } catch (std::exception& e) {
