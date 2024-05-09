@@ -232,51 +232,30 @@ cudaTextureObject_t loadTexture( const std::string& filename, float3 default_col
 void initGL()
 {
     int glad_gl_version = gladLoadGL();
-    if( !glad_gl_version )
-        throw Exception( "Failed to initialize GL" );
+    if( !glad_gl_version ) { throw Exception( "Failed to initialize GL" ); }
 
-    printf("sutil/initGL: Loaded OpenGL %d.%d\n", glad_gl_version/10000, glad_gl_version % 10000);
+    printf("sutil/initGL: Loaded OpenGL glad_gl_version = %d\n", glad_gl_version);
 
     GL_CHECK( glClearColor( 0.212f, 0.271f, 0.31f, 1.0f ) );
     GL_CHECK( glClear( GL_COLOR_BUFFER_BIT ) );
 }
 
-void initGLFW()
+void initGLFW() { initGLFW ("", 64, 64, false); }
+
+GLFWwindow* initGLFW( const char* window_title, int width, int height, bool visible = true )
 {
+    std::cout << __func__ << "("<<window_title<<","<<width<<","<<height<<") called\n";
     glfwSetErrorCallback( errorCallback );
-    if( !glfwInit() )
-        throw Exception( "Failed to initialize GLFW" );
+    if( !glfwInit() ) { throw Exception( "Failed to initialize GLFW" ); }
 
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
     glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
-    //glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );  // To make Apple happy -- should not be needed
+    glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE ); // Removes functions deprecated in version <4.1
     glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-    glfwWindowHint( GLFW_VISIBLE, GLFW_FALSE );
+    glfwWindowHint( GLFW_VISIBLE, (visible ? GLFW_TRUE : GLFW_FALSE) );
 
-    GLFWwindow* window = glfwCreateWindow( 64, 64, "", nullptr, nullptr );
-    if( !window )
-        throw Exception( "Failed to create GLFW window" );
-
-    glfwMakeContextCurrent( window );
-    glfwSwapInterval( 0 );  // No vsync
-}
-
-GLFWwindow* initGLFW( const char* window_title, int width, int height )
-{
-    GLFWwindow* window = nullptr;
-    glfwSetErrorCallback( errorCallback );
-    if( !glfwInit() )
-        throw Exception( "Failed to initialize GLFW" );
-
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
-    glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );  // To make Apple happy -- should not be needed
-    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-
-    window = glfwCreateWindow( width, height, window_title, nullptr, nullptr );
-    if( !window )
-        throw Exception( "Failed to create GLFW window" );
-
+    GLFWwindow* window = glfwCreateWindow( width, height, window_title, nullptr, nullptr );
+    if( !window ) { throw Exception( "Failed to create GLFW window" ); }
     glfwMakeContextCurrent( window );
     glfwSwapInterval( 0 );  // No vsync
 
