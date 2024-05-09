@@ -42,9 +42,14 @@ namespace comray {
             this->ommatidia = _ommatidia;
         }
 
+        // Hard-coded number of faces making up an ommatidial 'flared tube'
         static constexpr int tube_faces = 18;
         // VisualModel::computeTube makes this many vertices per tube:
         static constexpr int tube_vertices = tube_faces * 4 + 2;
+        // Hardcoded ommatidial flared tube start radius
+        static constexpr float tube_radius = 0.005f;
+        // Hardcoded ommatidial flared tube length
+        static constexpr float tube_length = 0.04f;
 
         void updateColours()
         {
@@ -92,20 +97,19 @@ namespace comray {
             // Draw ommatidia
             size_t n_omm = ommData->size();
             for (size_t i = 0u; i < n_omm; ++i) {
-                // at location float3 ommatidia[i].relativePosition,
-                // draw cone with orientation float3 ommatidia[i].relativeDirection
-                // and angle float ommatidia[i].acceptanceAngleRadians.
-                // Somehow use float ommatidia[i].focalPointOffset
-                // Colour is ommData[i]
+                // Ommatidia position/shape
                 float3 rpos = (*ommatidia)[i].relativePosition;
                 float3 rdir = (*ommatidia)[i].relativeDirection;
+                float flare = (*ommatidia)[i].acceptanceAngleRadians;
+                float foc_offset = (*ommatidia)[i].focalPointOffset;
                 morph::vec<float, 3> start_coord = { rpos.x, rpos.y, rpos.z };
                 morph::vec<float, 3> dir = { rdir.x, rdir.y, rdir.z };
                 dir.renormalize();
-                morph::vec<float, 3> end_coord = start_coord + dir * 0.01f; // just a hack
-                float radius = 0.005f; // just a hack
+                // focal point offset very likely not to be used correctly here:
+                morph::vec<float, 3> end_coord = start_coord + dir * (foc_offset == 0.0f ? tube_length : foc_offset);
+                // Colour comes from ommData
                 std::array<float, 3> colour = (*ommData)[i];
-                this->computeTube (this->idx, start_coord, end_coord, colour, colour, radius, tube_faces);
+                this->computeFlaredTube (this->idx, start_coord, end_coord, colour, colour, tube_radius, tube_faces, flare);
             }
         }
 
