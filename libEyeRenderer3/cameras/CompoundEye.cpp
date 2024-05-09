@@ -59,14 +59,12 @@ void CompoundEye::copyOmmatidialDataToHost()
 
 void CompoundEye::computeOmmatidialSampleAverage()
 {
-    float one_over_samples = 1.0f / static_cast<float>(specializedData.samplesPerOmmatidium);
     for (size_t i = 0u; i < specializedData.ommatidialCount; ++i) {
         // Zero our average value first
-        ommatidial_average[i] = make_float3 (0.0f, 0.0f, 0.0f);
-        // Re-compute
-        size_t _i = i * specializedData.samplesPerOmmatidium;
+        this->ommatidial_average[i] = make_float3 (0.0f, 0.0f, 0.0f);
+        // Sum the h_ommatidial_samples (apparently, these have already been divided by samplesPerOmmatidium)
         for (size_t j = 0; j < specializedData.samplesPerOmmatidium; ++j) {
-            ommatidial_average[i] += h_ommatidial_samples[_i + j] * one_over_samples;
+            this->ommatidial_average[i] += this->h_ommatidial_samples[j * specializedData.ommatidialCount + i];
         }
     }
 }
