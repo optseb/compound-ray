@@ -385,6 +385,8 @@ add_subdirectory( newGuiEyeRenderer )
 
 # Copy of newGuiEyeRenderer with a shim to incorporate a brain model
 add_subdirectory(brainRenderer)
+# I have at least one program to generate an eye layout in here:
+add_subdirectory(simple_eyes)
 
 # NVidia's sutil library.  The rules to build it are found in the subdirectory.
 add_subdirectory(sutil)
