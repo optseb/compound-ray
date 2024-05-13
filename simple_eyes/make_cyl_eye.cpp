@@ -8,7 +8,7 @@ int main()
     using mc = morph::mathconst<float>;
 
     constexpr int n_per_ring = 100;
-    constexpr int n_rings = 10;
+    constexpr int n_rings = 32;
     // ring radius in mm
     constexpr float ring_rad = 0.2f;
     // Angle between elements in the ring
@@ -19,7 +19,7 @@ int main()
     // A truly cylindrical array isn't much use as an eye. If you want that, set this to
     // 0.0f. Otherwise, give an angle in radians that is the vertical field of view for the
     // cyl. array
-    constexpr float vertical_array_angle = mc::pi_over_4;
+    constexpr float vertical_array_angle = mc::pi_over_2;
     constexpr float vertical_el_angle = vertical_array_angle / (n_rings - 1);
     constexpr float start_angle = -vertical_array_angle / 2.0f;
 
