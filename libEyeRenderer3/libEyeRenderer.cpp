@@ -226,7 +226,10 @@ void setRenderSize(int w, int h)
   height = h;
   if(notificationsActive)
     std::cout<<"[PyEye] Resizing rendering buffer to ("<<w<<", "<<h<<")."<<std::endl;
+  GLFWwindow* ctx = glfwGetCurrentContext();
+  if (ctx != window) { glfwMakeContextCurrent (window); }
   outputBuffer.resize(width, height);
+  glfwMakeContextCurrent (ctx);
 }
 double renderFrame(void)
 {
@@ -248,7 +251,9 @@ void displayFrame(void)
   int framebuf_res_y = 0;   //
   glfwGetFramebufferSize( window, &framebuf_res_x, &framebuf_res_y );
 
-  glfwMakeContextCurrent (window); // Just in case the user just selected another window
+  GLFWwindow* ctx = glfwGetCurrentContext();
+  // Just in case the user just selected another window:
+  if (ctx != window) { glfwMakeContextCurrent (window); }
   gl_display.display(
           outputBuffer.width(),
           outputBuffer.height(),
@@ -259,6 +264,7 @@ void displayFrame(void)
 
   // Swap the buffer
   glfwSwapBuffers(window);
+  glfwMakeContextCurrent (ctx);
 }
 void saveFrameAs(const char* ppmFilename)
 {
