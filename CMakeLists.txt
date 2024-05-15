@@ -213,6 +213,16 @@ if( APPLE )
   set( CUDA_TOOLKIT_RPATH_FLAG "-Wl,-rpath,${CUDA_TOOLKIT_ROOT_DIR}/lib" )
 endif()
 
+if(UNIX)
+  # On Unix-like systems, shared libraries can use the soname system.
+  set(GLFW_LIB_NAME glfw)
+else()
+  set(GLFW_LIB_NAME glfw3)
+endif()
+
+# Use a packaged GLFW
+find_package(glfw3 3.2...3.4 REQUIRED)
+
 # Locate the NVRT distribution.  Search the SDK first, then look in the system.
 set(OptiX_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../" CACHE PATH "Path to OptiX installed location.")
 
@@ -354,12 +364,7 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
 
   # Most of the samples link against the sutil library and the optix library.  Here is the
   # rule that specifies this linkage.
-  target_link_libraries( ${target_name}
-    Threads::Threads
-    ${GLFW_LIB_NAME}
-    imgui
-    sutil_7_sdk
-    )
+  target_link_libraries( ${target_name} Threads::Threads ${GLFW_LIB_NAME} imgui sutil_7_sdk)
 
   set_target_properties( ${target_name} PROPERTIES
     COMPILE_DEFINITIONS OPTIX_SAMPLE_NAME_DEFINE=${target_name})

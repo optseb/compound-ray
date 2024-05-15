@@ -28,21 +28,15 @@
 
 find_package( OpenGL REQUIRED )
 
-if( UNIX )
-  # On Unix-like systems, shared libraries can use the soname system.
-  set(GLFW_LIB_NAME glfw)
-else()
-  set(GLFW_LIB_NAME glfw3)
-endif()
-
 # Filter out warnings that cause problems with GLFW.
 if( WARNINGS_AS_ERRORS AND (USING_GNU_CXX OR USING_CLANG_CXX))
   string( REPLACE "-Wdeclaration-after-statement" "" filtered_c_flags ${CMAKE_C_FLAGS} )
   string( REPLACE "-Wsign-compare" "" filtered_c_flags ${filtered_c_flags} )
   push_variable( CMAKE_C_FLAGS "${filtered_c_flags} -Wno-format-truncation -Wno-deprecated" )
 endif()
-add_subdirectory( GLFW )
-set_property( TARGET glfw PROPERTY C_STANDARD 99 )
+
+#add_subdirectory( GLFW )
+#set_property( TARGET glfw PROPERTY C_STANDARD 99 )
 if( WARNINGS_AS_ERRORS AND (USING_GNU_CXX OR USING_CLANG_CXX))
   pop_variable( CMAKE_C_FLAGS )
 endif()
@@ -63,5 +57,15 @@ target_link_libraries( glad PUBLIC ${OPENGL_LIBRARIES} )
 
 # Set IDE folders for targets
 set_property( TARGET glad PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
-set_property( TARGET glfw PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
+#set_property( TARGET glfw PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
 set_property( TARGET imgui PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
+
+# Install the library on the system. Let's put a postfix on libglad, so that it's easily linkable. Job for tomorrow...
+install(TARGETS glad EXPORT compound-ray LIBRARY
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/compound-ray)
+
+# Install headers
+install(FILES glad/glad.h
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/glad)
+install(FILES KHR/khrplatform.h
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/KHR)
