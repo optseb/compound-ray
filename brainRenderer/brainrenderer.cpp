@@ -172,16 +172,12 @@ int main (int argc, char* argv[])
             v.poll();
             eyevm_ptr->ommatidia = ommatidia;
             if (eyevm_ptr->ommatidia != nullptr) {
-                if (eyevm_ptr->get_simple_flared() != simple_flared) {
-                    eyevm_ptr->toggle_simple_flared();
+                curr_eye_size = eyevm_ptr->ommatidia->size();
+                if (curr_eye_size != last_eye_size) {
+                    eyevm_ptr->reinit();
+                    last_eye_size = curr_eye_size;
                 } else {
-                    curr_eye_size = eyevm_ptr->ommatidia->size();
-                    if (curr_eye_size != last_eye_size) {
-                        eyevm_ptr->reinit();
-                        last_eye_size = curr_eye_size;
-                    } else {
-                        eyevm_ptr->updateColours(); // 4x faster to just updateColours
-                    }
+                    eyevm_ptr->updateColours(); // 4x faster to just updateColours
                 }
             }
             v.render();
