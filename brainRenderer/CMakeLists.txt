@@ -47,10 +47,8 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMORPH_FONTS_DIR=\"\\\"${PROJECT_SOURCE_DIR}/morphologica/fonts\\\"\"")
 
 # Find the libraries which will be needed
-find_package(HDF5 REQUIRED)
-find_package(Armadillo REQUIRED)
-find_package(OpenGL REQUIRED)
-#find_package(glfw3 3.3 REQUIRED)
+#find_package(OpenGL REQUIRED) # already found
+#find_package(glfw3 3.2...3.4 REQUIRED) # already found
 find_package(Freetype REQUIRED)
 
 # Define collections of includes that have to be made for morphologica
@@ -62,20 +60,17 @@ set(MORPH_INCLUDE_PATH "${PROJECT_SOURCE_DIR}/morphologica" CACHE PATH "The path
 include_directories(BEFORE ${MORPH_INCLUDE_PATH}/include) # Allows GL3/gl3.h to be found
 include_directories(BEFORE ${MORPH_INCLUDE_PATH})         # Allows morph/Header.h to be found
 
-set(MORPH_LIBS_CORE ${ARMADILLO_LIBRARY} ${ARMADILLO_LIBRARIES} ${HDF5_C_LIBRARIES})
-set(MORPH_LIBS_GL Freetype::Freetype) # NOT glfw, compound ray already includes. OpenGL::GL should be dynamically loaded by glad
+# The only MORPH_LIBS we need to link to are Freetype
+set(MORPH_LIBS Freetype::Freetype)
 #
 # morphologica incantations complete
 #
 
-
-# A variable containing source code files to compile
-set(brain_renderer_sources brainrenderer.cpp)
-
-# We need libEyeRenderer3 headers
+# We need to include libEyeRenderer3 headers
 include_directories(BEFORE "../libEyeRenderer3")
 
-OPTIX_add_sample_executable (brainRenderer target_name ${brain_renderer_sources} OPTIONS -rdc true)
+# The OptiX way to create an executable
+OPTIX_add_sample_executable (brainRenderer target_name brainrenderer.cpp OPTIONS -rdc true)
 
 # Link CUDA, morphologica dependencies and libEyeRenderer3.so
-target_link_libraries(${target_name} ${CUDA_LIBRARIES} ${MORPH_LIBS_CORE} ${MORPH_LIBS_GL} EyeRenderer3)
+target_link_libraries(${target_name} ${CUDA_LIBRARIES} ${MORPH_LIBS} EyeRenderer3)
