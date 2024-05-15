@@ -23,6 +23,9 @@ int main()
     constexpr float vertical_el_angle = vertical_array_angle / (n_rings - 1);
     constexpr float start_angle = -vertical_array_angle / 2.0f;
 
+    // Acceptance angle (rad)
+    constexpr float a = element_angle * 0.5f;
+
     // Position
     float xp = 0.0f;
     float yp = 0.0f;
@@ -32,20 +35,21 @@ int main()
     float yd = 0.0f;
     float zd = 0.0f;
 
-    // Acceptance angle (rad)
-    constexpr float a = element_angle;
-    // Focal point
-    constexpr float f = 0.0f;
-
     for (int r = 0; r < n_rings; ++r) {
-        zp = ring_to_ring * r;
-        zd = std::sin (start_angle + (r-1) * vertical_el_angle);
-        for (int el = 0; el < n_per_ring; ++el) {
-            xp = ring_rad * std::cos (el * element_angle);
-            yp = ring_rad * std::sin (el * element_angle);
+        yp = ring_to_ring * r;
+        float current_v_angle = start_angle + (r-1) * vertical_el_angle;
+        yd = std::sin (current_v_angle);
+        // Focal point always brings these 'ommatidia' to the centre of the cylinder
+        float f = ring_rad / std::cos (current_v_angle);
 
-            xd = std::cos (el * element_angle);
-            yd = std::sin (el * element_angle);
+        for (int el = 0; el < n_per_ring; ++el) {
+
+            // z and x
+            zp = ring_rad * std::cos (el * element_angle);
+            xp = ring_rad * std::sin (el * element_angle);
+
+            zd = std::cos (el * element_angle);
+            xd = std::sin (el * element_angle);
 
             std::cout << xp << " " << yp << " " << zp << " "
                       << xd << " " << yd << " " << zd << " "
