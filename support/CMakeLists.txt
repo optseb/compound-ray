@@ -43,29 +43,41 @@ add_subdirectory( imgui )
 
 add_subdirectory( tinygltf )
 
-set(glad_target glad)
+message(INFO ": glad_target from parent: ${glad_target}")
 add_library( ${glad_target} SHARED
   KHR/khrplatform.h
   glad/glad.c
   glad/glad.h
 )
 target_compile_definitions( ${glad_target} PRIVATE  GLAD_GLAPI_EXPORT_BUILD PUBLIC  GLAD_GLAPI_EXPORT )
-target_include_directories( ${glad_target} PUBLIC . )
+
+target_include_directories( ${glad_target} PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>" )
+
 target_link_libraries( ${glad_target} PUBLIC ${OPENGL_LIBRARIES} )
 
 # Set IDE folders for targets
 set_property( TARGET ${glad_target} PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
 set_property( TARGET imgui PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
 
-install(TARGETS imgui
-  EXPORT compound-ray
-  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+## see libEyeRenderer3/CMakeLists.txt
+#install(TARGETS imgui
+#  EXPORT compound-ray
+#  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+#  ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+#  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}
+#  INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray)
 
 # Install the library on the system.
 message (INFO ": glad_target: ${glad_target}")
-install(TARGETS ${glad_target}
-  EXPORT compound-ray
-  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+
+#install(TARGETS ${glad_target}
+#  EXPORT compound-ray
+#  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+#  ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+#  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}
+#  INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray)
 
 # Install headers
 install(FILES glad/glad.h

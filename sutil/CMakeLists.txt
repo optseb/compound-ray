@@ -69,8 +69,8 @@ if(NOT CUDA_NVRTC_ENABLED)
 endif()
 
 # Make the library.
-set(sutil_target "sutil_7_sdk")
 add_library(${sutil_target} ${sources})
+
 if( WIN32 )
   target_compile_definitions( ${sutil_target} PUBLIC GLAD_GLAPI_EXPORT )
 endif()
@@ -81,6 +81,10 @@ target_link_libraries(${sutil_target} LINK_PRIVATE
   imgui
   ${CUDA_LIBRARIES}
   )
+
+target_include_directories( ${sutil_target} PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>" )
 
 # Use gcc rather than g++ to link if we are linking statically against libgcc_s and libstdc++
 if(USING_GNU_C OR USING_GNU_CXX)
@@ -104,9 +108,12 @@ set(sutil_sources "${sources}" PARENT_SCOPE)
 set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
 
 # Install the library on the system
-install(TARGETS ${sutil_target}
-  EXPORT compound-ray-config LIBRARY
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+#install(TARGETS ${sutil_target}
+#  EXPORT compound-ray-config
+#  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+#  ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+#  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}
+#  INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray)
 
 # Install headers
 install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h GLDisplay.h

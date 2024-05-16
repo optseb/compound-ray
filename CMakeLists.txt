@@ -305,6 +305,9 @@ set(SAMPLES_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
 # in CMake, functions have their own scope, whereas macros use the scope of the caller.
 function(OPTIX_add_sample_executable target_name_base target_name_var)
 
+  #message (INFO ": target_name_var is '${target_name_var}'")
+  #message (INFO ": target_name_base is '${target_name_base}'")
+
   set( target_name ${target_name_base} )
   set( ${target_name_var} ${target_name} PARENT_SCOPE )
 
@@ -389,15 +392,19 @@ endfunction()
 #  List of subprojects (usually executables) in this project.
 #
 
+set (glad_target glad)
+set (imgui_target imgui)
+set (sutil_target sutil_7_sdk)
+
 # add_subdirectory() for sutil, support and cuda should come before libEyeRenderer3
 #
-# NVidia's sutil library.  The rules to build it are found in the subdirectory.
-# Its headers will install to (e.g.) /usr/local/include/compound-ray/sutil
-add_subdirectory(sutil)
 # Third-party support libraries.
 add_subdirectory(support)
 # We'll install cuda headers in (e.g.) /usr/local/include/compound-ray/cuda
 add_subdirectory(cuda)
+# NVidia's sutil library.  The rules to build it are found in the subdirectory.
+# Its headers will install to (e.g.) /usr/local/include/compound-ray/sutil
+add_subdirectory(sutil)
 
 # Insect Eye related directories:
 
