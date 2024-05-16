@@ -31,16 +31,51 @@
 set(local_eye_renderer_sources "")
 include("CMakeIncludes.cmake")
 add_eye_renderer("." local_eye_renderer_sources)
+
+
 OPTIX_add_sample_executable(EyeRenderer3 target_name ${local_eye_renderer_sources} OPTIONS -rdc true)
+
+target_include_directories(${target_name} PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+)
+
 target_link_libraries(${target_name} ${CUDA_LIBRARIES})
 # Install the library
-install(TARGETS ${target_name} EXPORT compound-ray LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/compound-ray)
+install(TARGETS ${target_name}
+        EXPORT compound-ray-config
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray
+      )
 # Install headers
 install(FILES libEyeRenderer.h GlobalParameters.h MulticamScene.h shaders.cu
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray)
-install(FILES cameras/GenericCamera.h cameras/PerspectiveCamera.h cameras/OrthographicCamera.h cameras/CompoundEye.h cameras/DataRecordCamera.h
+install(FILES
+        cameras/DataRecordCamera.h
+        cameras/CompoundEye.h
+        cameras/CompoundEyeDataTypes.h
+        cameras/GenericCamera.h
+        cameras/GenericCameraDataTypes.h
+        cameras/OrthographicCamera.h
+        cameras/OrthographicCameraDataTypes.h
+        cameras/PanoramicCamera.h
+        cameras/PanoramicCameraDataTypes.h
+        cameras/PerspectiveCamera.h
+        cameras/PerspectiveCameraDataTypes.h
+        cameras/ThreeSixtyCamera.h
+        cameras/ThreeSixtyCameraDataTypes.h
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/cameras)
 
-
-# Install the EXPORT so that morphologica has its own .cmake file and find_package(compound-ray) should work
-install(FILES compound-ray-config.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/compound-ray)
+# Install the EXPORT so that compound-ray has its own .cmake file and find_package(compound-ray) should work
+message (INFO ": target_name: ${target_name} sutil_target: ${sutil_target}")
+#export(TARGETS ${target_name} ${sutil_target}
+#    NAMESPACE compound-ray::
+#    FILE "${CMAKE_CURRENT_BINARY_DIR}/compound-ray-config.cmake"
+#)
+install(EXPORT compound-ray-config
+        FILE compound-ray-config.cmake
+        NAMESPACE compound-ray::
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/compound-ray"
+)

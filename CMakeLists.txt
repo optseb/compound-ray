@@ -67,6 +67,21 @@ cmake_policy(VERSION 3.5)
 # the name of the VS solution file.
 project(Eye-Renderer-Three)
 
+# Let's use CMAKE_INSTALL_LIBDIR, DATADIR, etc
+if(UNIX)
+  include(GNUInstallDirs)
+else()
+  if (WIN32)
+    set(${CMAKE_INSTALL_LIBDIR} "lib")
+    set(${CMAKE_INSTALL_DATADIR} "share")
+    set(${CMAKE_INSTALL_INCLUDEDIR} "include")
+    set(${CMAKE_INSTALL_BINDIR} "bin")
+    message(STATUS "Setting installation destination on Windows to: ${CMAKE_INSTALL_PREFIX}")
+  else()
+    message(FATAL_ERROR "System not UNIX nor WIN32 - not implemented yet")
+  endif()
+endif()
+
 if( POLICY CMP0072 )
   # FindOpenGL prefers GLVND by default when available
   cmake_policy(SET CMP0072 NEW)
@@ -373,20 +388,38 @@ endfunction()
 #########################################################
 #  List of subprojects (usually executables) in this project.
 #
+
+# add_subdirectory() for sutil, support and cuda should come before libEyeRenderer3
+#
+# NVidia's sutil library.  The rules to build it are found in the subdirectory.
+# Its headers will install to (e.g.) /usr/local/include/compound-ray/sutil
+add_subdirectory(sutil)
+# Third-party support libraries.
+add_subdirectory(support)
+# We'll install cuda headers in (e.g.) /usr/local/include/compound-ray/cuda
+add_subdirectory(cuda)
+
 # Insect Eye related directories:
-#add_subdirectory( eyeGenerator )
+
+# The installable library
 add_subdirectory( libEyeRenderer3 )
 
+# An example eye renderer gui program
 add_subdirectory( newGuiEyeRenderer )
 
 # Copy of newGuiEyeRenderer with a shim to incorporate a brain model
 add_subdirectory(brainRenderer)
+
 # I have at least one program to generate an eye layout in here:
 add_subdirectory(simple_eyes)
 
-# NVidia's sutil library.  The rules to build it are found in the subdirectory.
-add_subdirectory(sutil)
-# Third-party support libraries.
-add_subdirectory(support)
-
 #################################################################
+
+# For debugging of variables:
+option(DEBUG_VARIABLES OFF)
+if(DEBUG_VARIABLES)
+  get_cmake_property(_variableNames VARIABLES)
+  foreach(_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+  endforeach()
+endif(DEBUG_VARIABLES)

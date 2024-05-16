@@ -104,12 +104,13 @@ set(sutil_sources "${sources}" PARENT_SCOPE)
 set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
 
 # Install the library on the system
-install(TARGETS ${sutil_target} EXPORT compound-ray LIBRARY
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/compound-ray)
+install(TARGETS ${sutil_target}
+  EXPORT compound-ray-config LIBRARY
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 # Install headers
 install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h GLDisplay.h
         hitscanprocessing.h Matrix.h PPMLoader.h Preprocessor.h
         Quaternion.h Record.h Scene.h sutilapi.h sutil.h Trackball.h vec_math.h
         WorkDistribution.h
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/sutil)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray/sutil)
