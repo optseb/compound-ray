@@ -60,19 +60,12 @@
 # If you have any questions, don't feel shy about posting to the OptiX forums:
 # https://devtalk.nvidia.com/default/board/90/
 
+cmake_minimum_required(VERSION 3.5.0 FATAL_ERROR)
+cmake_policy(VERSION 3.5)
 
 # This sets up the name of our project.  For our purposes the main thing this controls is
 # the name of the VS solution file.
 project(Eye-Renderer-Three)
-
-# This enforces a particular version of CMake that we require to process the script files
-# properly.
-cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
-
-# As of CMake 2.6 policies were introduced in order to provide a mechanism for
-# adding backwards compatibility one feature at a time.  We will just specify
-# that all policies will use version 2.6 symantics.
-cmake_policy(VERSION 3.0)
 
 if( POLICY CMP0072 )
   # FindOpenGL prefers GLVND by default when available
@@ -93,11 +86,11 @@ set(CMAKE_MODULE_PATH
 
 # Set the default build to Release.  Note this doesn't do anything for the VS
 # default build target which defaults to Debug when you first start it.
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE "Release" CACHE STRING
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
       "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 # Tells CMake to build all the libraries as shared libraries by default.  This can be
 # overrided by individual libraries later.
@@ -118,7 +111,7 @@ include (ConfigCompilerFlags)
 
 # Turn off the warning that NVCC issues when generating PTX from our CUDA samples.  This
 # is a custom extension to the FindCUDA code distributed by CMake.
-OPTION(CUDA_REMOVE_GLOBAL_MEMORY_SPACE_WARNING "Suppress the \"Advisory: Cannot tell what pointer points to, assuming global memory space\" warning nvcc makes." ON)
+option(CUDA_REMOVE_GLOBAL_MEMORY_SPACE_WARNING "Suppress the \"Advisory: Cannot tell what pointer points to, assuming global memory space\" warning nvcc makes." ON)
 
 # For Xcode 5, gcc is actually clang, so we have to tell CUDA to treat the compiler as
 # clang, so that it doesn't mistake it for something else.
@@ -139,59 +132,57 @@ SET(BUFFER_TYPE "BUFFER_TYPE_GL_INTEROP" CACHE STRING "Which type of buffer to u
 message(STATUS "Buffer Type set to ${BUFFER_TYPE}")
 add_definitions("-D${BUFFER_TYPE}")
 
-SET(ARCH_INT "60" CACHE STRING "sm and compute architecture integer for compiling NVCC and NVRTC. Defaults to '60', which aligns with all Pascal architecture processors. See docs/indepth-install-notes.md for further details.")
+set(ARCH_INT "60" CACHE STRING "sm and compute architecture integer for compiling NVCC and NVRTC. Defaults to '60', which aligns with all Pascal architecture processors. See docs/indepth-install-notes.md for further details.")
 
 # Add some useful default arguments to the NVCC and NVRTC flags. This is an example of
 # how we use PASSED_FIRST_CONFIGURE.  Once you have configured, this variable is TRUE
 # and following block of code will not be executed leaving you free to edit the values
 # as much as you wish from the GUI or from ccmake.
-#if(NOT PASSED_FIRST_CONFIGURE)
-  list(FIND CUDA_NVCC_FLAGS "-arch" index)
-  if(index EQUAL -1)
-    list(APPEND CUDA_NVCC_FLAGS "-arch sm_${ARCH_INT}")
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-  endif()
-  set(flag "--use_fast_math")
+list(FIND CUDA_NVCC_FLAGS "-arch" index)
+if(index EQUAL -1)
+  list(APPEND CUDA_NVCC_FLAGS "-arch sm_${ARCH_INT}")
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
+endif()
+set(flag "--use_fast_math")
+list(FIND CUDA_NVCC_FLAGS ${flag} index)
+if(index EQUAL -1)
+  list(APPEND CUDA_NVCC_FLAGS ${flag})
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
+endif()
+
+set(flag "-lineinfo")
+list(FIND CUDA_NVCC_FLAGS ${flag} index)
+if(index EQUAL -1)
+  list(APPEND CUDA_NVCC_FLAGS ${flag})
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
+endif()
+
+if (CUDA_VERSION VERSION_LESS "3.0")
+  set(flag "--keep")
   list(FIND CUDA_NVCC_FLAGS ${flag} index)
   if(index EQUAL -1)
     list(APPEND CUDA_NVCC_FLAGS ${flag})
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
   endif()
+endif()
 
-  set(flag "-lineinfo")
+if( APPLE )
+  # Undef'ing __BLOCKS__ for OSX builds.  This is due to a name clash between OSX 10.6
+  # C headers and CUDA headers
+  set(flag "-U__BLOCKS__")
   list(FIND CUDA_NVCC_FLAGS ${flag} index)
   if(index EQUAL -1)
     list(APPEND CUDA_NVCC_FLAGS ${flag})
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
   endif()
+endif()
 
-  if (CUDA_VERSION VERSION_LESS "3.0")
-    set(flag "--keep")
-    list(FIND CUDA_NVCC_FLAGS ${flag} index)
-    if(index EQUAL -1)
-      list(APPEND CUDA_NVCC_FLAGS ${flag})
-      set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-    endif()
-  endif()
-
-  if( APPLE )
-    # Undef'ing __BLOCKS__ for OSX builds.  This is due to a name clash between OSX 10.6
-    # C headers and CUDA headers
-    set(flag "-U__BLOCKS__")
-    list(FIND CUDA_NVCC_FLAGS ${flag} index)
-    if(index EQUAL -1)
-      list(APPEND CUDA_NVCC_FLAGS ${flag})
-      set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-    endif()
-  endif()
-
-  if(CMAKE_CXX_STANDARD EQUAL 11)
-    set(EYE_RENDERER_NVRTC_CXX "-std=c++11")
-  else()
-    set(EYE_RENDERER_NVRTC_CXX "")
-  endif()
-  set(CUDA_NVRTC_FLAGS ${EYE_RENDERER_NVRTC_CXX} "-arch compute_${ARCH_INT} -use_fast_math -lineinfo -default-device -rdc true -D__x86_64" CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
-#endif(NOT PASSED_FIRST_CONFIGURE)
+if(CMAKE_CXX_STANDARD EQUAL 11)
+  set(EYE_RENDERER_NVRTC_CXX "-std=c++11")
+else()
+  set(EYE_RENDERER_NVRTC_CXX "")
+endif()
+set(CUDA_NVRTC_FLAGS ${EYE_RENDERER_NVRTC_CXX} "-arch compute_${ARCH_INT} -use_fast_math -lineinfo -default-device -rdc true -D__x86_64" CACHE STRING "Semi-colon delimit multiple arguments." FORCE)
 
 mark_as_advanced(CUDA_NVRTC_FLAGS)
 
@@ -213,15 +204,15 @@ if( APPLE )
   set( CUDA_TOOLKIT_RPATH_FLAG "-Wl,-rpath,${CUDA_TOOLKIT_ROOT_DIR}/lib" )
 endif()
 
+
+# Use a packaged GLFW
+find_package(glfw3 3.2...3.4 REQUIRED)
+# find_package(glfw3...) does not set any 'GLFW_LIBS' variable, so set one manually
 if(UNIX)
-  # On Unix-like systems, shared libraries can use the soname system.
   set(GLFW_LIB_NAME glfw)
 else()
   set(GLFW_LIB_NAME glfw3)
 endif()
-
-# Use a packaged GLFW
-find_package(glfw3 3.2...3.4 REQUIRED)
 
 # Locate the NVRT distribution.  Search the SDK first, then look in the system.
 set(OptiX_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../" CACHE PATH "Path to OptiX installed location.")
@@ -399,8 +390,3 @@ add_subdirectory(sutil)
 add_subdirectory(support)
 
 #################################################################
-
-# Now that everything is done, indicate that we have finished configuring at least once.
-# We use this variable to set certain defaults only on the first pass, so that we don't
-# continually set them over and over again.
-set(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "Already Configured once?")
