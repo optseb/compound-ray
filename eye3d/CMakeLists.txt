@@ -70,7 +70,7 @@ set(MORPH_LIBS Freetype::Freetype)
 include_directories(BEFORE "../libEyeRenderer3")
 
 # The OptiX way to create an executable
-OPTIX_add_sample_executable (brainRenderer target_name brainrenderer.cpp OPTIONS -rdc true)
+OPTIX_add_sample_executable (eye3d target_name eye3d.cpp OPTIONS -rdc true)
 
 # Link CUDA, morphologica dependencies and libEyeRenderer3.so
 target_link_libraries(${target_name} ${CUDA_LIBRARIES} ${MORPH_LIBS} EyeRenderer3)
