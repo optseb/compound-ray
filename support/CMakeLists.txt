@@ -35,8 +35,6 @@ if( WARNINGS_AS_ERRORS AND (USING_GNU_CXX OR USING_CLANG_CXX))
   push_variable( CMAKE_C_FLAGS "${filtered_c_flags} -Wno-format-truncation -Wno-deprecated" )
 endif()
 
-#add_subdirectory( GLFW )
-#set_property( TARGET glfw PROPERTY C_STANDARD 99 )
 if( WARNINGS_AS_ERRORS AND (USING_GNU_CXX OR USING_CLANG_CXX))
   pop_variable( CMAKE_C_FLAGS )
 endif()
@@ -48,19 +46,15 @@ add_library( glad SHARED
   glad/glad.c
   glad/glad.h
 )
-target_compile_definitions( glad
-  PRIVATE  GLAD_GLAPI_EXPORT_BUILD
-  PUBLIC  GLAD_GLAPI_EXPORT )
+target_compile_definitions( glad PRIVATE  GLAD_GLAPI_EXPORT_BUILD PUBLIC  GLAD_GLAPI_EXPORT )
 target_include_directories( glad PUBLIC . )
 target_link_libraries( glad PUBLIC ${OPENGL_LIBRARIES} )
 
-
 # Set IDE folders for targets
 set_property( TARGET glad PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
-#set_property( TARGET glfw PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
 set_property( TARGET imgui PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
 
-# Install the library on the system. Let's put a postfix on libglad, so that it's easily linkable. Job for tomorrow...
+# Install the library on the system.
 install(TARGETS glad EXPORT compound-ray LIBRARY
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/compound-ray)
 
