@@ -107,13 +107,9 @@ set(sutil_sources "${sources}" PARENT_SCOPE)
 
 set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
 
-# Install the library on the system
-#install(TARGETS ${sutil_target}
-#  EXPORT compound-ray-config
-#  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
-#  ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
-#  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}
-#  INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray)
+# NB: install() of libsutil_7_sdk.so is carried out in
+# libEyeRenderer/CMakeLists.txt as libEyeRender.so is exported along
+# with glad, imgui and sutil_7_sdk
 
 # Install headers
 install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h GLDisplay.h
