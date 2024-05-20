@@ -50,7 +50,7 @@
 
 bool dirtyUI = true; // a flag to keep track of if the UI has changed in any way
 BasicController controller;
-bool simple_flared = true; // simple flared tubes in morphologica window
+bool show_cones = true; // Show cones as well as discs?
 
 // scene exists at global scope in libEyeRenderer.so
 extern MulticamScene scene;
@@ -63,7 +63,7 @@ static void keyCallback (GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
             glfwSetWindowShouldClose (window, true);
         } else if (key == GLFW_KEY_T) {
             // Toggle the morph view
-            simple_flared = !simple_flared;
+            show_cones = !show_cones;
         } else {
             // Camera changing
             if (key == GLFW_KEY_N) {
@@ -170,6 +170,10 @@ int main (int argc, char* argv[])
             // Switch to morphologica context, poll, render and then release
             v.setContext();
             v.poll();
+            if (eyevm_ptr->show_cones != show_cones) {
+                eyevm_ptr->show_cones = show_cones;
+                eyevm_ptr->reinit();
+            }
             eyevm_ptr->ommatidia = ommatidia;
             if (eyevm_ptr->ommatidia != nullptr) {
                 curr_eye_size = eyevm_ptr->ommatidia->size();
