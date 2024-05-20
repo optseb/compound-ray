@@ -11,8 +11,9 @@ int main()
     constexpr int n_rings = 32;
     // ring radius in mm
     constexpr float ring_rad = 0.2f;
-    // Angle between elements in the ring
-    constexpr float element_angle = mc::two_pi / n_per_ring;
+    // Angle between elements in the ring is the acceptance angle
+    constexpr float acceptance_angle = mc::two_pi / n_per_ring;
+    constexpr float half_acceptance_angle = acceptance_angle / 2.0f;
     // Compute to be same as ommatidium to ommatidium in the ring
     constexpr float ring_to_ring = (mc::pi * ring_rad * 2.0f) / static_cast<float>(n_per_ring);
 
@@ -22,9 +23,6 @@ int main()
     constexpr float vertical_array_angle = mc::pi_over_2;
     constexpr float vertical_el_angle = vertical_array_angle / (n_rings - 1);
     constexpr float start_angle = -vertical_array_angle / 2.0f;
-
-    // Acceptance angle (rad)
-    constexpr float a = element_angle * 0.5f;
 
     // Position
     float xp = 0.0f;
@@ -45,15 +43,15 @@ int main()
         for (int el = 0; el < n_per_ring; ++el) {
 
             // z and x
-            zp = ring_rad * std::cos (el * element_angle);
-            xp = ring_rad * std::sin (el * element_angle);
+            zp = ring_rad * std::cos (el * acceptance_angle);
+            xp = ring_rad * std::sin (el * acceptance_angle);
 
-            zd = std::cos (el * element_angle);
-            xd = std::sin (el * element_angle);
+            zd = std::cos (el * acceptance_angle);
+            xd = std::sin (el * acceptance_angle);
 
             std::cout << xp << " " << yp << " " << zp << " "
                       << xd << " " << yd << " " << zd << " "
-                      << a << " " << f << "\n";
+                      << acceptance_angle << " " << f << "\n";
         }
     }
 
