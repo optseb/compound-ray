@@ -414,13 +414,6 @@ add_subdirectory( libEyeRenderer3 )
 # An example eye renderer gui program
 add_subdirectory( newGuiEyeRenderer )
 
-# Copy of newGuiEyeRenderer with a shim to incorporate a brain model
-# and a 3D rendering of your Compound Eye model
-add_subdirectory(eye3d)
-
-# I have at least one program to generate an eye layout in here:
-add_subdirectory(simple_eyes)
-
 #################################################################
 
 # For debugging of variables:
