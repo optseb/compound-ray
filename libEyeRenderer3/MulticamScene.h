@@ -194,6 +194,9 @@ class MulticamScene
     // The CPU side vector of ommatidia used to create each CompoundEye in m_compoundEyes
     std::map<int, std::vector<Ommatidium>> m_ommVecs;
 
+    // The eye data file, specified as "compound-structure" for compound eyes
+    std::string eye_data_path = "";
+
   private:
     void createPTXModule();
     void createProgramGroups();

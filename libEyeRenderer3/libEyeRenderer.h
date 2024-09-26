@@ -4,6 +4,7 @@
 #include <vector_types.h>
 #include <vector> // Use std::vector/array to get data out
 #include <array>
+#include <string>
 
 // A simplified ommatidium object, to make it easier to
 // transfer ommatidial information from external API users.
@@ -59,6 +60,10 @@ extern "C"
   // Compound-specific
   //int getOmmatidialCameraCount(void);
   bool isCompoundEyeActive(void);
+
+  // Tell client applications what the name of the compound.eye file path was. For compound eyes. Empty for non-compound eyes
+  std::string getEyeDataPath();
+
   void setCurrentEyeSamplesPerOmmatidium(int s);// Changes the current eye samples per ommatidium. WARNING: This resets the random seed values. A render must be called to regenerate them, this will take significantly longer than a frame render.
   int  getCurrentEyeSamplesPerOmmatidium(void);// Returns the current eye samples per ommatidium
   void changeCurrentEyeSamplesPerOmmatidiumBy(int s);// Changes the current eye samples per ommatidium. WARNING: This resets the random seed values. A render must be called to regenerate them, this will take significantly longer than a frame render.

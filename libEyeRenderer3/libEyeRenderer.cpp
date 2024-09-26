@@ -444,6 +444,13 @@ bool isCompoundEyeActive(void)
 {
   return scene.isCompoundEyeActive();
 }
+
+std::string getEyeDataPath()
+{
+  if (scene.isCompoundEyeActive()) { return scene.eye_data_path; }
+  return std::string("");
+}
+
 void setCurrentEyeSamplesPerOmmatidium(int s)
 {
   if(scene.isCompoundEyeActive())

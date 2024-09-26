@@ -278,14 +278,17 @@ void processGLTFNode(
             if(!eyeDataFile.is_open())
             {
               std::cerr << "ERROR: Unable to open \"" << relativeEyeDataPath << "\", read cancelled."<<std::endl;
+              scene.eye_data_path = relativeEyeDataPath;
               return;
             }else{
               std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
               usedEyeDataPath = relativeEyeDataPath;
+              scene.eye_data_path = usedEyeDataPath;
             }
           }else{
             std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
             usedEyeDataPath = eyeDataPath;
+            scene.eye_data_path = usedEyeDataPath;
           }
 
           // Read the lines of the file
