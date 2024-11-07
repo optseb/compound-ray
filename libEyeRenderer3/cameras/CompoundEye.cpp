@@ -71,7 +71,7 @@ void CompoundEye::computeOmmatidialSampleAverage()
 
 float3* CompoundEye::getRecordFrame()
 {
-    this->copyOmmatidialDataToHost();
+    this->copyOmmatidialDataToHost(); // MUCH data to transfer, especially when there are many samples. So want to average on the device!
     this->computeOmmatidialSampleAverage();
     return this->ommatidial_average;
 }

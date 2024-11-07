@@ -197,6 +197,9 @@ class MulticamScene
     // The eye data file, specified as "compound-structure" for compound eyes
     std::string eye_data_path = "";
 
+    // Rendering the OpenGL window costs time, make it optional
+    bool enable_render_window = true;
+
   private:
     void createPTXModule();
     void createProgramGroups();

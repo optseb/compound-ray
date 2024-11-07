@@ -181,17 +181,20 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene&
       camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
     }
 
-    // Launch render
-    OPTIX_CHECK( optixLaunch(
-                scene.pipeline(),
-                0,             // stream
-                reinterpret_cast<CUdeviceptr>( d_params ),
-                sizeof( globalParameters::LaunchParams ),
-                scene.sbt(),
-                width,  // launch width
-                height, // launch height
-                1//scene.getCamera()->samplesPerPixel // launch depth
-                ) );
+    // Launch render, but only if *required* as this can add slowness
+    if(scene.enable_render_window == true) {
+        OPTIX_CHECK( optixLaunch(
+                         scene.pipeline(),
+                         0,             // stream
+                         reinterpret_cast<CUdeviceptr>( d_params ),
+                         sizeof( globalParameters::LaunchParams ),
+                         scene.sbt(),
+                         width,  // launch width
+                         height, // launch height
+                         1//scene.getCamera()->samplesPerPixel // launch depth
+                         ) );
+    }
+
     output_buffer.unmap();
     CUDA_SYNC_CHECK();
 }
