@@ -40,6 +40,7 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
 
     // Return the pointer ommatidial_average if it is allocated. Call copyOmmatidialDataToHost first.
     float3* getRecordFrame();
+    void zeroRecordFrame();
 
   private:
 
@@ -57,9 +58,7 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
     // and compound rendering buffers if the count has changed
     void reconfigureOmmatidialCount(size_t count);
 
-    // A pointer to (samples * number of ommatidia) float3 values, copied from CUDA device.
-    float3* h_ommatidial_samples = nullptr;
-    // A pointer to (number of ommatidia) float3 values, computed from ommatidial_samples
+    // A pointer to (number of ommatidia) float3 values, copied from CUDA device
     float3* ommatidial_average = nullptr;
 
     std::string shaderName;

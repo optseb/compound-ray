@@ -1652,7 +1652,7 @@ void MulticamScene::createPipeline()
 void MulticamScene::createCompoundPipeline()
 {
   #ifdef DEBUG
-  std::cout << "Generating Compound pipline..." << std::endl;
+  std::cout << "Generating Compound pipeline..." << std::endl;
   #endif
   OptixProgramGroup program_groups[] =
   {
@@ -1692,6 +1692,7 @@ void MulticamScene::reconfigureSBTforCurrentCamera(bool force)
     lastPipelinedCamera = currentCamera;// update the pointer
     raygen_prog_group_desc.raygen.entryFunctionName = c->getEntryFunctionName();
     std::cout<< "ALERT: Regenerating pipeline with raygen entry function '"<<c->getEntryFunctionName()<<"'."<<std::endl;
+    // THIS is where the projection shader is set up
     optixProgramGroupDestroy(m_raygen_prog_group);
     OPTIX_CHECK_LOG( optixProgramGroupCreate(
                 m_context,

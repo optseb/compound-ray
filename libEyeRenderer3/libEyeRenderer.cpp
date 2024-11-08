@@ -432,9 +432,13 @@ void getCameraData (std::vector<std::array<float, 3>>& cameraData)
     cameraData.resize (omcount);
     float3* _data = ((CompoundEye*)scene.getCamera())->getRecordFrame();
     for (size_t i = 0; i < omcount; ++i) {
-      // copy _data[i] to cameraData[i]
-      cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
+      // copy _data[i] to cameraData[i] applying gamma correction
+      // 1/2.2 = 0.45454545
+      cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
     }
+    // Now reset the device memory to zero before the next frame render. Assumption is
+    // you'll call getCameraData() after each renderFrame()
+    ((CompoundEye*)scene.getCamera())->zeroRecordFrame();
   } else {
     throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
   }
