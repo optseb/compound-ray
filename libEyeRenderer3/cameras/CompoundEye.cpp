@@ -68,14 +68,30 @@ float3* CompoundEye::getRecordFrame()
 #include "average_kernel.h"
 void CompoundEye::averageRecordFrame()
 {
-    size_t omc = this->getOmmatidialCount();
+    uint32_t omc = this->getOmmatidialCount();
     uint32_t spo = this->getSamplesPerOmmatidium();
 
     // Somehow need this file to be happy to launch a CUDA kernel
-    average_kernel<<<omc, spo>>>(specializedData.d_compoundBuffer, specializedData.d_compoundAvgBuffer);
-
-    cudaDeviceSynchronize(); // or CUDA_SYNC_CHECK()?
+    void* k_args[2] = { &specializedData.d_compoundBuffer, &specializedData.d_compoundAvgBuffer };
+    dim3 gDim = {omc, spo, 1};
+    dim3 tDim = {1, 1, 1};
+    cudaLaunchKernel<decltype(average_kernel)>(average_kernel,
+                                               gDim,  // omm count x samples per omm x 1 blocks
+                                               tDim,  // 1x1x1 threads
+                                               k_args, 0, 0);
+    CUDA_SYNC_CHECK();
 }
+
+#if 0 // example
+void runKernel(CUdeviceptr d_a, CUdeviceptr d_b, CUdeviceptr d_c)
+{
+    void *args[3] = { &d_a, &d_b, &d_c };
+    // grid for kernel: <<<N, 1>>>
+    checkCudaErrors( cuLaunchKernel(function, N, 1, 1,  // Nx1x1 blocks
+                                    1, 1, 1,            // 1x1x1 threads
+                                    0, 0, args, 0) );
+}
+#endif
 
 void CompoundEye::zeroRecordFrame()
 {

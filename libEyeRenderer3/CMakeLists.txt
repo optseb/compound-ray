@@ -32,6 +32,9 @@ set(local_eye_renderer_sources "")
 include("CMakeIncludes.cmake")
 add_eye_renderer("." local_eye_renderer_sources)
 
+# Compile this: ${relative_path}/average_kernel.cu into a tiny lib
+# add_library(extra_kernels average_kernel.cu)
+
 OPTIX_add_sample_executable(EyeRenderer3 EyeRenderer3_target ${local_eye_renderer_sources} OPTIONS -rdc true)
 
 target_include_directories(${EyeRenderer3_target} PUBLIC
