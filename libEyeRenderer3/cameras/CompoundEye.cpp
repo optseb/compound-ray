@@ -58,10 +58,23 @@ void CompoundEye::copyOmmatidialDataToHost()
   CUDA_SYNC_CHECK();
 }
 
+//
 float3* CompoundEye::getRecordFrame()
 {
     this->copyOmmatidialDataToHost();
     return this->ommatidial_average;
+}
+
+#include "average_kernel.h"
+void CompoundEye::averageRecordFrame()
+{
+    size_t omc = this->getOmmatidialCount();
+    uint32_t spo = this->getSamplesPerOmmatidium();
+
+    // Somehow need this file to be happy to launch a CUDA kernel
+    average_kernel<<<omc, spo>>>(specializedData.d_compoundBuffer, specializedData.d_compoundAvgBuffer);
+
+    cudaDeviceSynchronize(); // or CUDA_SYNC_CHECK()?
 }
 
 void CompoundEye::zeroRecordFrame()

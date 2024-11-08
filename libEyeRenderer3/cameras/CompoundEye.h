@@ -41,6 +41,7 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
     // Return the pointer ommatidial_average if it is allocated. Call copyOmmatidialDataToHost first.
     float3* getRecordFrame();
     void zeroRecordFrame();
+    void averageRecordFrame();
 
   private:
 

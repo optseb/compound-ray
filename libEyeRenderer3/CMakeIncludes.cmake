@@ -14,6 +14,7 @@ macro(add_eye_renderer relative_path sources)
       ${relative_path}/GlobalParameters.h
       ${relative_path}/MulticamScene.h
       ${relative_path}/MulticamScene.cpp
+      ${relative_path}/average_kernel.cu
       ${relative_path}/cameras/GenericCamera.h
       ${relative_path}/cameras/GenericCamera.cpp
       ${relative_path}/cameras/PerspectiveCamera.h

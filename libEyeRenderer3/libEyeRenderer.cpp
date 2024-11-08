@@ -150,7 +150,16 @@ void handleCameraUpdate( globalParameters::LaunchParams& params )
     scene.reconfigureSBTforCurrentCamera(false);
 }
 
+// Launch a CUDA kernel to reduce what was found with launchFrame
+void averageFrame (MulticamScene& scene)
+{
+    if(scene.hasCompoundEyes() && scene.isCompoundEyeActive())  {
+         CompoundEye* camera = (CompoundEye*)scene.getCamera();
+         camera->averageRecordFrame();
+    } // else no-op
+}
 
+// Launch Optix threads to render a frame. Once this is done, call averageFrame and finally getCameraData.
 void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene& scene )
 {
     uchar4* result_buffer_data = output_buffer.map();
@@ -240,6 +249,10 @@ double renderFrame(void)
 
   auto then = std::chrono::steady_clock::now();
   launchFrame( outputBuffer, scene );
+
+  // Now run a CUDA kernel to do the reduction
+  averageFrame (scene);
+
   std::chrono::duration<double, std::milli> render_time = std::chrono::steady_clock::now() - then;
 
   if(notificationsActive)
@@ -434,11 +447,13 @@ void getCameraData (std::vector<std::array<float, 3>>& cameraData)
     for (size_t i = 0; i < omcount; ++i) {
       // copy _data[i] to cameraData[i] applying gamma correction
       // 1/2.2 = 0.45454545
-      cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
+      //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
+      cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
     }
     // Now reset the device memory to zero before the next frame render. Assumption is
     // you'll call getCameraData() after each renderFrame()
     ((CompoundEye*)scene.getCamera())->zeroRecordFrame();
+
   } else {
     throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
   }
