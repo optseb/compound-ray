@@ -44,6 +44,7 @@ void CompoundEye::reconfigureOmmatidialCount(size_t count)
     allocateOmmatidialRandomStates();
     // Assign VRAM for the compound rendering buffer
     allocateCompoundRenderingBuffer();
+    allocateCompoundRenderingAvgBuffer();
   }
 }
 
@@ -216,11 +217,57 @@ void CompoundEye::freeCompoundRenderingBuffer()
   }
 }
 
+void CompoundEye::allocateCompoundRenderingAvgBuffer()
+{
+  size_t blockCount = specializedData.ommatidialCount;
+  size_t memSize = sizeof(float3)*blockCount;
+  std::cout << "[CAMERA: " << getCameraName() << "] Allocating compound render AVG buffer (size: "<<sizeof(float3)<<" x "<< specializedData.ommatidialCount
+            << " (sizeof x omcount)" << std::endl;
+  //#ifdef DEBUG
+  std::cout << "[CAMERA: " << getCameraName() << "] Clearing and allocating compound render AVG buffer on device. (size: "<<memSize<<", "<<blockCount<<" blocks)"<<std::endl;
+  //#endif
+  freeCompoundRenderingAvgBuffer();
+  CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_compoundAvgBuffer) ), memSize) );
+  //#ifdef DEBUG
+  printf("  ...allocated at %p\n", specializedData.d_compoundAvgBuffer);
+  //#endif
+  CUDA_SYNC_CHECK();
+
+  // Also allocate host-side
+  //this->h_ommatidial_samples = (float3*) malloc (sizeof(float3) * blockCount);
+}
+void CompoundEye::freeCompoundRenderingAvgBuffer()
+{
+    //#ifdef DEBUG
+  std::cout << "[CAMERA: " << getCameraName() << "] Freeing compound AVG render buffer... ";
+  //#endif
+  if(specializedData.d_compoundAvgBuffer != 0)
+  {
+    CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer)) );
+    specializedData.d_compoundAvgBuffer= 0;
+    //#ifdef DEBUG
+    std::cout << "Compound AVG buffer freed!" << std::endl;
+    //#endif
+  }
+  //#ifdef DEBUG
+  else{
+    std::cout << "Compound AVG buffer already free, skipping..." << std::endl;
+  }
+  //#endif
+  CUDA_SYNC_CHECK();
+
+  //if (this->h_ommatidial_samples != nullptr) {
+  //  free (this->h_ommatidial_samples);
+  //  this->h_ommatidial_samples = nullptr;
+  // }
+}
+
 void CompoundEye::setSamplesPerOmmatidium(int32_t s)
 {
   specializedData.samplesPerOmmatidium = max(static_cast<int32_t>(1),s);
   allocateOmmatidialRandomStates();
   allocateCompoundRenderingBuffer();
+  allocateCompoundRenderingAvgBuffer();
   #ifdef DEBUG
   std::cout << "Set samples per ommatidium to " << specializedData.samplesPerOmmatidium << std::endl;
   #endif

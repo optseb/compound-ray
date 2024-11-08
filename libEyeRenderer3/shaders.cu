@@ -386,7 +386,30 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension()
   // Update results
   //
   const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
-  params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(ommatidiumIndex, posedData->specializedData));
+  float3 summedpixel = getSummedOmmatidiumData(ommatidiumIndex, posedData->specializedData);
+  params.frame_buffer[image_index] = make_color(summedpixel);
+}
+
+// Seb: Like single dimension, but writes data to GPU ram ready to be transferred to CPU RAM for later processing
+extern "C" __global__ void __raygen__compound_projection_single_dimension_dram()
+{
+  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  const uint3  launch_idx      = optixGetLaunchIndex();
+  const uint3  launch_dims     = optixGetLaunchDimensions();
+  const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
+
+  // Scale the x coordinate by the number of ommatidia (we don't want to be reading too far off the edge of the assigned ommatidia)
+  const uint32_t ommatidiumIndex = (launch_idx.x * ommatidialCount)/launch_dims.x;
+
+  //
+  // Update results
+  //
+  const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+
+  // Instead of writing to the frame_buffer, write to d_compoundAvgBuffer. Also, keep in float format
+  float3 summedpixel = getSummedOmmatidiumData(ommatidiumIndex, posedData->specializedData);
+  params.frame_buffer[image_index] = make_color(summedpixel);
+  ((float3*)posedData->specializedData.d_compoundAvgBuffer)[ommatidiumIndex] = summedpixel;
 }
 
 /*
@@ -486,6 +509,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
   // Update results
   //
   const uint32_t image_index  = launch_idx.y * launch_dims.x + launch_idx.x;
+  // This is summing into the frame buffer. I want to do this just for data, with index as per ommatidial indices
   params.frame_buffer[image_index] = make_color(getSummedOmmatidiumData(closestIndex, posedData->specializedData));
 }
 

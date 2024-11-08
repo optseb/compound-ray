@@ -66,7 +66,9 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
     void allocateOmmatidialMemory();
     void allocateOmmatidialRandomStates();
     void allocateCompoundRenderingBuffer();
+    void allocateCompoundRenderingAvgBuffer();
     void freeOmmatidialMemory();
     void freeOmmatidialRandomStates();
     void freeCompoundRenderingBuffer();
+    void freeCompoundRenderingAvgBuffer();
 };
