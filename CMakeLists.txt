@@ -361,7 +361,10 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
       ${source_files}
       ${generated_files}
       ${cmake_options}
-      )
+    )
+
+    # Plus link my special average_kernel cuda function lib here?
+
   else()
     add_executable(${target_name}
       ${source_files}
@@ -412,7 +415,7 @@ add_subdirectory(sutil)
 add_subdirectory( libEyeRenderer3 )
 
 # An example eye renderer gui program
-add_subdirectory( newGuiEyeRenderer )
+add_subdirectory( newGuiEyeRenderer ) # gets foxed by my average_kernel
 
 #################################################################
 

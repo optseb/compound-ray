@@ -32,9 +32,10 @@ set(local_eye_renderer_sources "")
 include("CMakeIncludes.cmake")
 add_eye_renderer("." local_eye_renderer_sources)
 
-# Compile this: ${relative_path}/average_kernel.cu into a tiny lib
-# add_library(extra_kernels average_kernel.cu)
-
+# Mark a specific source file to be CUDA! From https://forums.developer.nvidia.com/t/how-to-compile-cuda-c-files-and-nvidia-optix-files-inside-the-same-visual-studio-project/31821/2
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/average_kernel.cu
+  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
+)
 OPTIX_add_sample_executable(EyeRenderer3 EyeRenderer3_target ${local_eye_renderer_sources} OPTIONS -rdc true)
 
 target_include_directories(${EyeRenderer3_target} PUBLIC
