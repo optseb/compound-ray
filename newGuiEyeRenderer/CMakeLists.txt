@@ -11,11 +11,12 @@ set(gui_eye_renderer_sources
 include("../libEyeRenderer3/CMakeIncludes.cmake")
 add_eye_renderer("../libEyeRenderer3" gui_eye_renderer_sources)
 
-OPTIX_add_sample_executable( newGuiEyeRenderer target_name
-  ${gui_eye_renderer_sources}
-  OPTIONS -rdc true
-  )
-
-target_link_libraries( ${target_name}
-  ${CUDA_LIBRARIES}
+# Mark a specific source file to be CUDA! From https://forums.developer.nvidia.com/t/how-to-compile-cuda-c-files-and-nvidia-optix-files-inside-the-same-visual-studio-project/31821/2
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../libEyeRenderer3/average_kernel.cu
+  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
 )
+OPTIX_add_sample_executable (newGuiEyeRenderer target_name ${gui_eye_renderer_sources} OPTIONS -rdc true)
+message (INFO " CUDA_LIBRARIES: " ${CUDA_LIBRARIES})
+target_link_libraries(${target_name} ${CUDA_LIBRARIES} ${CUDA_nvrtc_static_LIBRARY})
+
+set_target_properties (${target_name} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

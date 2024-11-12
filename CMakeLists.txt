@@ -297,26 +297,32 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}
 
 set(SAMPLES_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
 
+# These calls will group PTX and CUDA files into their own directories in the Visual
+# Studio projects.
+macro(OPTIX_add_source_groups)
+  if( NOT CUDA_NVRTC_ENABLED )
+    if( SAMPLES_INPUT_GENERATE_PTX )
+      source_group("PTX Files"  REGULAR_EXPRESSION ".+\\.ptx$")
+    endif()
+    if( SAMPLES_INPUT_GENERATE_OPTIXIR )
+      source_group("OptixIR Files"  REGULAR_EXPRESSION ".+\\.optixir$")
+    endif()
+  endif()
+  source_group("CUDA Files" REGULAR_EXPRESSION ".+\\.cu$")
+endmacro()
+
 #########################################################
-# OPTIX_add_sample_executable
+# OPTIX_add_sample_executable (newer from NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64/SDK/)
 #
-# Convience function for adding samples to the code.  You can copy the contents of this
+# Convenience function for adding samples to the code.  You can copy the contents of this
 # funtion into your individual project if you wish to customize the behavior.  Note that
 # in CMake, functions have their own scope, whereas macros use the scope of the caller.
 function(OPTIX_add_sample_executable target_name_base target_name_var)
 
-  #message (INFO ": target_name_var is '${target_name_var}'")
-  #message (INFO ": target_name_base is '${target_name_base}'")
-
   set( target_name ${target_name_base} )
   set( ${target_name_var} ${target_name} PARENT_SCOPE )
 
-  # These calls will group PTX and CUDA files into their own directories in the Visual
-  # Studio projects.
-  if (NOT CUDA_NVRTC_ENABLED)
-    source_group("PTX Files"  REGULAR_EXPRESSION ".+\\.ptx$")
-  endif()
-  source_group("CUDA Files" REGULAR_EXPRESSION ".+\\.cu$")
+  OPTIX_add_source_groups()
 
   # Separate the sources from the CMake and CUDA options fed to the macro.  This code
   # comes from the CUDA_COMPILE_PTX macro found in FindCUDA.cmake.  We are copying the
@@ -325,31 +331,30 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   # the SDK.
   CUDA_GET_SOURCES_AND_OPTIONS(source_files cmake_options options ${ARGN})
 
-  if (CUDA_NVRTC_ENABLED)
+  # Isolate OBJ target files. NVCC should only process these files and leave PTX targets for NVRTC
+  set(cu_obj_source_files)
+  set(cu_optix_source_files)
+  foreach(file ${source_files})
+    get_source_file_property(_cuda_source_format ${file} CUDA_SOURCE_PROPERTY_FORMAT)
+    if(${_cuda_source_format} MATCHES "OBJ")
+      list(APPEND cu_obj_source_files ${file})
+    else()
+      list(APPEND cu_optix_source_files ${file})
+    endif()
+  endforeach()
 
-    # Isolate OBJ target files. NVCC should only process these files and leave PTX targets for NVRTC
-    set(cu_obj_source_files)
-    foreach(file ${source_files})
-      get_source_file_property(_cuda_source_format ${file} CUDA_SOURCE_PROPERTY_FORMAT)
-      if(${_cuda_source_format} MATCHES "OBJ")
-        list(APPEND cu_obj_source_files ${file})
-      endif()
-    endforeach()
+  # Create the rules to build the OBJ from the CUDA files.
+  CUDA_WRAP_SRCS( ${target_name} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS "" ) # ${options}
 
-    # Create the rules to build the OBJ from the CUDA files.
-    CUDA_WRAP_SRCS( ${target_name} OBJ generated_files ${cu_obj_source_files} ${cmake_options} OPTIONS ${options} )
-  else()
-
-    # Create the rules to build the PTX and OBJ from the CUDA files.
-    CUDA_WRAP_SRCS( ${target_name} PTX generated_files ${source_files} ${cmake_options} OPTIONS ${options} )
+  # Create the rules to build the PTX and/or OPTIX files.
+  if( SAMPLES_INPUT_GENERATE_OPTIXIR )
+    CUDA_WRAP_SRCS( ${target_name} OPTIXIR generated_files2 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
+    list(APPEND generated_files ${generated_files2})
   endif()
-
-
-  # Here is where we create the rule to make the executable.  We define a target name and
-  # list all the source files used to create the target.  In addition we also pass along
-  # the cmake_options parsed out of the arguments.
-  #
-  # If the target is the EyeRenderer library, then that library is added via `add_library` instead.
+  if( SAMPLES_INPUT_GENERATE_PTX AND NOT CUDA_NVRTC_ENABLED)
+    CUDA_WRAP_SRCS( ${target_name} PTX generated_files3 ${cu_optix_source_files} ${cmake_options} OPTIONS ${options} )
+    list(APPEND generated_files ${generated_files3})
+  endif()
 
   message("-- Parsing ${target_name}...")
   if (${target_name} STREQUAL "EyeRenderer3")
@@ -362,24 +367,28 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
       ${generated_files}
       ${cmake_options}
     )
-
-    # Plus link my special average_kernel cuda function lib here?
-
   else()
+    # Here is where we create the rule to make the executable.  We define a target name and
+    # list all the source files used to create the target.  In addition we also pass along
+    # the cmake_options parsed out of the arguments.
     add_executable(${target_name}
       ${source_files}
       ${generated_files}
       ${cmake_options}
-      )
+    )
   endif()
-
 
   # Most of the samples link against the sutil library and the optix library.  Here is the
   # rule that specifies this linkage.
-  target_link_libraries( ${target_name} Threads::Threads ${GLFW_LIB_NAME} imgui sutil_7_sdk)
+  target_link_libraries( ${target_name}
+    ${GLFW_LIB_NAME}
+    imgui
+    sutil_7_sdk
+    )
 
   set_target_properties( ${target_name} PROPERTIES
-    COMPILE_DEFINITIONS OPTIX_SAMPLE_NAME_DEFINE=${target_name})
+    COMPILE_DEFINITIONS
+    "OPTIX_SAMPLE_NAME_DEFINE=${target_name};OPTIX_SAMPLE_DIR_DEFINE=${target_name}" )
 
   if( UNIX AND NOT APPLE )
     # Force using RPATH instead of RUNPATH on Debian

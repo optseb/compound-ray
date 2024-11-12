@@ -59,6 +59,7 @@ __global__ void prefix_scan (float *g_odata, float *g_idata, int n)
 }
 #endif
 
+#if 0
 // C version of my python shifted index fn.
 __device__ int shifted_idx (int idx)
 {
@@ -154,11 +155,27 @@ __global__ void reduceit_from_py (float* scan_ar_, float* nonzero_ar_, float* ca
     // End of reduceit()
 }
 
+// Last job is to add on the carry to each part of scan_ar WHILE AT THE SAME TIME SUMMING WITHIN A BLOCK
+__global__ void sum_scans (float* new_carry_ar_, float* scan_ar_, int scan_ar_sz, float* carry_ar_)
+{
+    int thid = threadIdx.x;
+    int tb_offset = blockIdx.x * blockDim.x; // threadblock offset
+    int arr_addr = thid + tb_offset;
+    if (blockIdx.x > 0 && arr_addr < scan_ar_sz) {
+        new_carry_ar_[arr_addr] = scan_ar_[arr_addr] + carry_ar_[blockIdx.x];
+    } else if (blockIdx.x == 0 && arr_addr < scan_ar_sz) {
+        new_carry_ar_[arr_addr] = scan_ar_[arr_addr];
+    }
+    __syncthreads();
+}
+#endif
+
 __global__ void do_average (const float3* d_omm, const float3* d_avg)
 {
     // whatever d_avg[some_index] += whatever
     // call reduceit_from_py() somehow
 }
+
 
 __host__ void
 average_kernel (const float3* d_omm, const float3* d_avg, int n_pixels, int n_samples)
