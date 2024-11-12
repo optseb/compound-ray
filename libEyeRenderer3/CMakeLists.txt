@@ -35,7 +35,6 @@ add_eye_renderer("." local_eye_renderer_sources)
 # Mark a specific source file to be CUDA! From https://forums.developer.nvidia.com/t/how-to-compile-cuda-c-files-and-nvidia-optix-files-inside-the-same-visual-studio-project/31821/2
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/average_kernel.cu
   PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
-  OPTIONS ""
 )
 OPTIX_add_sample_executable(EyeRenderer3 EyeRenderer3_target ${local_eye_renderer_sources} OPTIONS -rdc true)
 
@@ -44,9 +43,7 @@ target_include_directories(${EyeRenderer3_target} PUBLIC
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/compound-ray>"
 )
 
-# How to do the device code linking???
-target_link_libraries(${EyeRenderer3_target} ${CUDA_LIBRARIES}) # ${CUDA_nvrtc_static_LIBRARY}
-# ${CMAKE_BINARY_DIR}lib/ptx/EyeRenderer3_generated_average_kernel.cu.o
+target_link_libraries(${EyeRenderer3_target} ${CUDA_LIBRARIES})
 
 # Install EyeRender3 and its dependencies giving it the export name compound-ray-config
 install(TARGETS ${EyeRenderer3_target} ${sutil_target} ${imgui_target} ${glad_target}

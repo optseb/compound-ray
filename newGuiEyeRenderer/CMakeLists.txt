@@ -16,7 +16,7 @@ set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../libEyeRenderer3/avera
   PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
 )
 OPTIX_add_sample_executable (newGuiEyeRenderer target_name ${gui_eye_renderer_sources} OPTIONS -rdc true)
-message (INFO " CUDA_LIBRARIES: " ${CUDA_LIBRARIES})
-target_link_libraries(${target_name} ${CUDA_LIBRARIES} ${CUDA_nvrtc_static_LIBRARY})
+
+target_link_libraries(${target_name} ${CUDA_LIBRARIES})
 
 set_target_properties (${target_name} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
