@@ -51,7 +51,7 @@ void CompoundEye::reconfigureOmmatidialCount(size_t count)
 // Copies the averages in specializedData.d_compoundAvgBuffer to this->ommatidial_average
 void CompoundEye::copyOmmatidialDataToHost()
 {
-  // std::cout << "Copying Ommatidial 'collected light' data to host.." << std::endl;
+  std::cout << "Copying Ommatidial 'collected light' data to host.." << std::endl;
   CUDA_CHECK( cudaMemcpy(this->ommatidial_average, // destination
                          reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer), // source
                          sizeof(float3) * specializedData.ommatidialCount,
@@ -73,7 +73,7 @@ void CompoundEye::averageRecordFrame()
     uint32_t spo = this->getSamplesPerOmmatidium();
     // This launches a CUDA kernel to do the reduction.
     std::cout << "Launch CUDA kernel to average..." << std::endl;
-    average_kernel (reinterpret_cast<const float3*>(&specializedData.d_compoundBuffer),
+    average_kernel (reinterpret_cast<float3*>(&specializedData.d_compoundBuffer),
                     reinterpret_cast<float3*>(&specializedData.d_compoundAvgBuffer), omc, spo);
 }
 
@@ -205,12 +205,12 @@ void CompoundEye::freeCompoundRenderingBuffer()
     CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_compoundBuffer)) );
     specializedData.d_compoundBuffer= 0;
     #ifdef DEBUG
-    std::cout << "Compound buffer freed!" << std::endl;
+    std::cout << "freed!" << std::endl;
     #endif
   }
   #ifdef DEBUG
   else{
-    std::cout << "Compound buffer already free, skipping..." << std::endl;
+    std::cout << "already free, skipping..." << std::endl;
   }
   #endif
   CUDA_SYNC_CHECK();
@@ -231,7 +231,7 @@ void CompoundEye::allocateCompoundRenderingAvgBuffer()
   //#endif
   freeCompoundRenderingAvgBuffer();
   CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_compoundAvgBuffer) ), memSize) );
-  std::cout << "Compound AVG buffer re-allocated\n";
+  std::cout << "[CAMERA: " << getCameraName() << "] Compound AVG buffer re-allocated\n";
   CUDA_SYNC_CHECK();
 }
 void CompoundEye::freeCompoundRenderingAvgBuffer()
@@ -244,12 +244,12 @@ void CompoundEye::freeCompoundRenderingAvgBuffer()
     CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer)) );
     specializedData.d_compoundAvgBuffer= 0;
     //#ifdef DEBUG
-    std::cout << "Compound AVG buffer freed!" << std::endl;
+    std::cout << "buffer freed!" << std::endl;
     //#endif
   }
   //#ifdef DEBUG
   else {
-    std::cout << "Compound AVG buffer already free, skipping..." << std::endl;
+    std::cout << "buffer already free, skipping." << std::endl;
   }
   //#endif
   CUDA_SYNC_CHECK();
