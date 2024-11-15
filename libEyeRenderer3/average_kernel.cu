@@ -40,15 +40,6 @@ __inline__ __device__ float3 blockReduceSum (float3 val)
     return val;
 }
 
-#if 0
-// A kernel function that doesn't do anything
-__global__ void reduceit_arrays_dummy (const float3* in, float3* out, int n_arrays, int n_elements)
-{
-    float3 sum = make_float3(0.0f, 1.0f, 0.0f);
-    __syncthreads();
-}
-#endif
-
 // Input is float3 format.
 __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_elements)
 {
@@ -56,26 +47,22 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
     // The y axis of our threads/threadblocks indexes which of the n_arrays this sum relates to
     int omm_id = blockIdx.y * blockDim.y /* + threadIdx.y == 0 */;
     // This gives a memory offset to get to the right part of the input memory
-    int mem_offset = omm_id * n_elements;
+    //int mem_offset = omm_id * n_elements;
+    int mem_offset = omm_id;
     // Number of sums is the number of 1D threadblocks that span n_elements. This is gridDim.x.
     int n_sums = gridDim.x;
     // For array index checking
     int data_sz = n_arrays * n_elements;
 
+    // I'm thinking I may need to play with the x and y threadblocks to get the access to the input right.
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < n_elements && omm_id < n_arrays;
          i += blockDim.x * gridDim.x) {
         int midx = mem_offset + i;
         if (midx < data_sz) {
-#if 1 // Causes illegal memory access
             sum.x += in[midx].x;
             sum.y += in[midx].y;
             sum.z += in[midx].z;
-#else
-            sum.x += 0.1f;
-            sum.y += 0.1f;
-            sum.z += 0.1f;
-#endif
         } else {
             sum.x = -1.0f;
             sum.y = -1.0f;
@@ -90,9 +77,7 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
     if (threadIdx.x == 0 && omm_id < n_arrays) {
         size_t out_idx = omm_id * n_sums + blockIdx.x;
         if (out_idx < n_arrays * n_sums) {
-#if 1 // Causes illegal mem access
             out[omm_id * n_sums + blockIdx.x] = sum;
-#endif
         }
     }
 }
@@ -133,8 +118,10 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
     // Malloc n_arrays * n_sums (which is stg1_griddim.x) elements
     gpuErrchk(cudaMalloc (&d_output, n_arrays * stg1_griddim.x * 3 * sizeof(float)));
 
-    std::cout << "CUDA_AVG: About to run with stg1_griddim = (" << stg1_griddim.x << " x " << stg1_griddim.y << " x " << stg1_griddim.z
-              << ") and stg1_blockdim = (" << stg1_blockdim.x << " x " << stg1_blockdim.y << " x " << stg1_blockdim.z << ") thread blocks\n";
+#ifdef DEBUG_CUDA_AVG
+    std::cout << "CUDA_AVG: About to run with stg1_griddim = (" << stg1_griddim.x << " x " << stg1_griddim.y
+              << ") and stg1_blockdim = (" << stg1_blockdim.x << " x " << stg1_blockdim.y << ") thread blocks\n";
+#endif
     reduceit_arrays<<<stg1_griddim, stg1_blockdim>>>(in, d_output, n_arrays, n_elements);
 
     gpuErrchk(cudaDeviceSynchronize());
@@ -149,8 +136,10 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
     stg2_griddim.x = stg1_griddim.x / stg1_blockdim.x + (stg1_griddim.x % stg2_blockdim.x ? 1 : 0);
     stg2_griddim.y = n_arrays / stg2_blockdim.y + (n_arrays % stg2_blockdim.y ? 1 : 0);
 
+#ifdef DEBUG_CUDA_AVG
     std::cout << "CUDA_AVG: About to run with stg2_griddim = (" << stg2_griddim.x << " x " << stg2_griddim.y
               << ") and stg2_blockdim = (" << stg2_blockdim.x << " x " << stg2_blockdim.y << ") thread blocks\n";
+#endif
 
     reduceit_arrays<<<stg2_griddim, stg2_blockdim>>>(d_output, d_final, n_arrays, stg1_griddim.x);
     // out_final can be only n_arrays in size
@@ -161,7 +150,10 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
 __host__ void
 average_kernel (float3* d_omm, float3* d_avg, int n_pixels, int n_samples)
 {
-    std::cout << "CUDA_AVG: " << __func__ << " called for n_pixels = " << n_pixels << " and n_samples = " << n_samples << std::endl;
+#ifdef DEBUG_CUDA_AVG
+    std::cout << "CUDA_AVG: " << __func__ << " called for n_pixels = " << n_pixels
+              << " and n_samples = " << n_samples << std::endl;
+#endif
     if (d_omm == nullptr || d_avg == nullptr) { return; }
     shufflesum_arrays (d_omm, n_pixels, n_samples, d_avg);
 }
