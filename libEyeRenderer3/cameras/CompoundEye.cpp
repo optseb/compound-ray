@@ -48,6 +48,7 @@ void CompoundEye::reconfigureOmmatidialCount(size_t count)
   }
 }
 
+// Copies the averages in specializedData.d_compoundAvgBuffer to this->ommatidial_average
 void CompoundEye::copyOmmatidialDataToHost()
 {
   // std::cout << "Copying Ommatidial 'collected light' data to host.." << std::endl;
@@ -58,7 +59,7 @@ void CompoundEye::copyOmmatidialDataToHost()
   CUDA_SYNC_CHECK();
 }
 
-//
+// Called after averageRecordFrame()
 float3* CompoundEye::getRecordFrame()
 {
     this->copyOmmatidialDataToHost();
@@ -72,7 +73,7 @@ void CompoundEye::averageRecordFrame()
     uint32_t spo = this->getSamplesPerOmmatidium();
     // This launches a CUDA kernel to do the reduction.
     std::cout << "Launch CUDA kernel to average..." << std::endl;
-    average_kernel (reinterpret_cast<float3*>(&specializedData.d_compoundBuffer),
+    average_kernel (reinterpret_cast<const float3*>(&specializedData.d_compoundBuffer),
                     reinterpret_cast<float3*>(&specializedData.d_compoundAvgBuffer), omc, spo);
 }
 
@@ -109,6 +110,7 @@ void CompoundEye::allocateOmmatidialMemory()
   #endif
   CUDA_SYNC_CHECK();
 
+  // FIXME: malloc ommatidial_average when cudaMallocing the associated cuda buffer
   // Also allocate ommatidial_average, our final output buffer
   this->ommatidial_average = (float3*) malloc (sizeof(float3) * specializedData.ommatidialCount);
 }
@@ -218,18 +220,23 @@ void CompoundEye::allocateCompoundRenderingAvgBuffer()
 {
   size_t blockCount = specializedData.ommatidialCount;
   size_t memSize = sizeof(float3)*blockCount;
-  std::cout << "[CAMERA: " << getCameraName() << "] Allocating compound render AVG buffer (size: "<<sizeof(float3)<<" x "<< specializedData.ommatidialCount
+  std::cout << "[CAMERA: " << getCameraName() << "] "
+            << "Allocating compound render AVG buffer "
+            << "(size: " << sizeof(float3) << " x " << specializedData.ommatidialCount
             << " (sizeof x omcount)" << std::endl;
   //#ifdef DEBUG
-  std::cout << "[CAMERA: " << getCameraName() << "] Clearing and allocating compound render AVG buffer on device. (size: "<<memSize<<", "<<blockCount<<" blocks)"<<std::endl;
+  std::cout << "[CAMERA: " << getCameraName() << "] "
+            << "Clearing and allocating compound render AVG buffer on device. "
+            << "(size: " << memSize << ", " << blockCount << " blocks)" << std::endl;
   //#endif
   freeCompoundRenderingAvgBuffer();
   CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_compoundAvgBuffer) ), memSize) );
+  std::cout << "Compound AVG buffer re-allocated\n";
   CUDA_SYNC_CHECK();
 }
 void CompoundEye::freeCompoundRenderingAvgBuffer()
 {
-    //#ifdef DEBUG
+  //#ifdef DEBUG
   std::cout << "[CAMERA: " << getCameraName() << "] Freeing compound AVG render buffer... ";
   //#endif
   if(specializedData.d_compoundAvgBuffer != 0)
@@ -241,7 +248,7 @@ void CompoundEye::freeCompoundRenderingAvgBuffer()
     //#endif
   }
   //#ifdef DEBUG
-  else{
+  else {
     std::cout << "Compound AVG buffer already free, skipping..." << std::endl;
   }
   //#endif

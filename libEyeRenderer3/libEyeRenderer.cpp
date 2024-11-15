@@ -249,6 +249,7 @@ double renderFrame(void)
 
   auto then = std::chrono::steady_clock::now();
   launchFrame( outputBuffer, scene );
+  CUDA_SYNC_CHECK();
 
   // Now run a CUDA kernel to do the reduction
   averageFrame (scene);
@@ -258,7 +259,6 @@ double renderFrame(void)
   if(notificationsActive)
     std::cout<<"[PyEye] Rendered frame in "<<render_time.count()<<"ms."<<std::endl;
 
-  CUDA_SYNC_CHECK();
   return(render_time.count());
 }
 void displayFrame(void)
