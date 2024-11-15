@@ -73,8 +73,8 @@ void CompoundEye::averageRecordFrame()
     uint32_t spo = this->getSamplesPerOmmatidium();
     // This launches a CUDA kernel to do the reduction.
     std::cout << "Launch CUDA kernel to average..." << std::endl;
-    average_kernel (reinterpret_cast<float3*>(&specializedData.d_compoundBuffer),
-                    reinterpret_cast<float3*>(&specializedData.d_compoundAvgBuffer), omc, spo);
+    average_kernel (reinterpret_cast<float3*>(specializedData.d_compoundBuffer),
+                    reinterpret_cast<float3*>(specializedData.d_compoundAvgBuffer), omc, spo);
 }
 
 void CompoundEye::zeroRecordFrame()

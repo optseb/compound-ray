@@ -150,16 +150,7 @@ void handleCameraUpdate( globalParameters::LaunchParams& params )
     scene.reconfigureSBTforCurrentCamera(false);
 }
 
-// Launch a CUDA kernel to reduce what was found with launchFrame
-void averageFrame (MulticamScene& scene)
-{
-    if(scene.hasCompoundEyes() && scene.isCompoundEyeActive())  {
-         CompoundEye* camera = (CompoundEye*)scene.getCamera();
-         camera->averageRecordFrame();
-    } // else no-op
-}
-
-// Launch Optix threads to render a frame. Once this is done, call averageFrame and finally getCameraData.
+// Launch Optix threads to render a frame. Once this is done getCameraData() accesses the summed/averaged values
 void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene& scene )
 {
     uchar4* result_buffer_data = output_buffer.map();
@@ -189,9 +180,9 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene&
       params.frame++;// Increase the frame number
       camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
 
-      // Option: Call the averaging CUDA kernel here
-      // camera->averageRecordFrame();
-      // CUDA_SYNC_CHECK();
+      // After the compoundray pipeline, call the sample-summing CUDA kernel here
+      camera->averageRecordFrame();
+      CUDA_SYNC_CHECK();
     }
 
     // Launch render, but only if *required* as this can add slowness
@@ -255,9 +246,6 @@ double renderFrame(void)
   launchFrame( outputBuffer, scene );
   CUDA_SYNC_CHECK();
   std::chrono::duration<double, std::milli> render_time = std::chrono::steady_clock::now() - then;
-
-  // Now run a CUDA kernel to do the reduction
-  averageFrame (scene);
 
   if (notificationsActive) {
       std::cout<<"[PyEye] Rendered frame in "<<render_time.count()<<"ms."<<std::endl;
