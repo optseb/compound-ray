@@ -45,18 +45,16 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
 {
     float3 sum = make_float3(0.0f, 0.0f, 0.0f);
     // The y axis of our threads/threadblocks indexes which of the n_arrays this sum relates to
-    int omm_id = blockIdx.y * blockDim.y /* + threadIdx.y == 0 */;
+    int omm_id = blockIdx.y * blockDim.y  + threadIdx.y;
     // This gives a memory offset to get to the right part of the input memory
     int thread_offset = omm_id * n_elements;
-    // Number of sums is the number of 1D threadblocks that span n_elements. This is gridDim.x.
-    int n_sums = gridDim.x;
     // For array index checking
     int data_sz = n_arrays * n_elements;
 
-    // I'm thinking I may need to play with the x and y threadblocks to get the access to the input right.
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < n_elements && omm_id < n_arrays;
-         i += blockDim.x * gridDim.x) {
+         i += blockDim.x * gridDim.x) { // jumps the whole threadblock
+
         int tidx = thread_offset + i;
         // Convert to x/y
         int tx = tidx % n_elements;
@@ -68,20 +66,21 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
             sum.y += in[midx].y;
             sum.z += in[midx].z;
         } else {
-            sum.x = -1.0f;
-            sum.y = -1.0f;
-            sum.z = -1.0f;
+            sum.x = 0.0f;
+            sum.y = 0.0f;
+            sum.z = 0.0f;
         }
     }
 
     sum = blockReduceSum (sum);
     __syncthreads();
 
-    // This gets the correct output location in out.
+    // This gets the correct output location in out. gridDim.x is "n_sums"
     if (threadIdx.x == 0 && omm_id < n_arrays) {
-        size_t out_idx = omm_id * n_sums + blockIdx.x;
-        if (out_idx < n_arrays * n_sums) {
-            out[omm_id * n_sums + blockIdx.x] = sum;
+        // Number of sums is the number of 1D threadblocks that span n_elements. This is gridDim.x.
+        size_t out_idx = omm_id * gridDim.x + blockIdx.x;
+        if (out_idx < n_arrays * gridDim.x) {
+            out[omm_id * gridDim.x + blockIdx.x] = sum;
         }
     }
 }
@@ -122,7 +121,8 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
     // Malloc n_arrays * n_sums (which is stg1_griddim.x) elements
     gpuErrchk(cudaMalloc (&d_output, n_arrays * stg1_griddim.x * 3 * sizeof(float)));
 
-#ifdef DEBUG_CUDA_AVG
+#define DEBUG_CUDA_AVG1
+#ifdef DEBUG_CUDA_AVG1
     std::cout << "CUDA_AVG: About to run with stg1_griddim = (" << stg1_griddim.x << " x " << stg1_griddim.y
               << ") and stg1_blockdim = (" << stg1_blockdim.x << " x " << stg1_blockdim.y << ") thread blocks\n";
 #endif
