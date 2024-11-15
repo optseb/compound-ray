@@ -47,8 +47,7 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
     // The y axis of our threads/threadblocks indexes which of the n_arrays this sum relates to
     int omm_id = blockIdx.y * blockDim.y /* + threadIdx.y == 0 */;
     // This gives a memory offset to get to the right part of the input memory
-    //int mem_offset = omm_id * n_elements;
-    int mem_offset = omm_id;
+    int thread_offset = omm_id * n_elements;
     // Number of sums is the number of 1D threadblocks that span n_elements. This is gridDim.x.
     int n_sums = gridDim.x;
     // For array index checking
@@ -58,7 +57,12 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < n_elements && omm_id < n_arrays;
          i += blockDim.x * gridDim.x) {
-        int midx = mem_offset + i;
+        int tidx = thread_offset + i;
+        // Convert to x/y
+        int tx = tidx % n_elements;
+        int ty = tidx / n_elements;
+        // Convert to real memory index
+        int midx = tx * n_arrays + ty;
         if (midx < data_sz) {
             sum.x += in[midx].x;
             sum.y += in[midx].y;
