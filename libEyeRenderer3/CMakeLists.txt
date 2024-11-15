@@ -43,7 +43,8 @@ target_include_directories(${EyeRenderer3_target} PUBLIC
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/compound-ray>"
 )
 
-target_link_libraries(${EyeRenderer3_target} ${CUDA_LIBRARIES})
+# Client to link CUDA
+target_link_libraries(${EyeRenderer3_target} -lcudart -lrt -ldl)
 
 # Install EyeRender3 and its dependencies giving it the export name compound-ray-config
 install(TARGETS ${EyeRenderer3_target} ${sutil_target} ${imgui_target} ${glad_target}
