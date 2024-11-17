@@ -123,7 +123,6 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
     // Malloc n_arrays * n_sums (which is stg1_griddim.x) elements
     gpuErrchk(cudaMalloc (&d_output, n_arrays * stg1_griddim.x * 3 * sizeof(float)));
 
-#define DEBUG_CUDA_AVG1
 #ifdef DEBUG_CUDA_AVG1
     std::cout << "CUDA_AVG: About to run with stg1_griddim = (" << stg1_griddim.x << " x " << stg1_griddim.y
               << ") and stg1_blockdim = (" << stg1_blockdim.x << " x " << stg1_blockdim.y << ") thread blocks\n";
@@ -142,7 +141,7 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
     stg2_griddim.x = stg1_griddim.x / stg1_blockdim.x + (stg1_griddim.x % stg2_blockdim.x ? 1 : 0);
     stg2_griddim.y = n_arrays / stg2_blockdim.y + (n_arrays % stg2_blockdim.y ? 1 : 0);
 
-#ifdef DEBUG_CUDA_AVG
+#ifdef DEBUG_CUDA_AVG2
     std::cout << "CUDA_AVG: About to run with stg2_griddim = (" << stg2_griddim.x << " x " << stg2_griddim.y
               << ") and stg2_blockdim = (" << stg2_blockdim.x << " x " << stg2_blockdim.y << ") thread blocks\n";
 #endif
