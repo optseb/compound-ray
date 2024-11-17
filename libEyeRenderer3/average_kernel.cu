@@ -53,7 +53,7 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
 
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < n_elements && omm_id < n_arrays;
-         i += blockDim.x * gridDim.x) { // jumps the whole threadblock
+         i += blockDim.x * gridDim.x) { // jumps the whole threadblock as threadblock may not span all data
 
         int tidx = thread_offset + i;
         // Convert to x/y
@@ -112,11 +112,13 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
 
     // Then figure out how many threadblocks to run.
     dim3 stg1_griddim(1, 1);
-    stg1_griddim.x = n_elements / stg1_blockdim.x + (n_elements % stg1_blockdim.x ? 1 : 0);
+    // We will combine n_sums before warping
+    // int n_sums = n_elements / stg1_blockdim.x + (n_elements % stg1_blockdim.x ? 1 : 0);
+    //stg1_griddim.x = n_sums; // but leave this at 1
     stg1_griddim.y = n_arrays / stg1_blockdim.y + (n_arrays % stg1_blockdim.y ? 1 : 0);
 
 
-    // d_output is an intermediate piece ofmemory. May (probably) want to allocate externally with the averages memory.
+    // d_output is an intermediate piece of memory. May (probably) want to allocate externally with the averages memory.
     float3* d_output = nullptr;
     // Malloc n_arrays * n_sums (which is stg1_griddim.x) elements
     gpuErrchk(cudaMalloc (&d_output, n_arrays * stg1_griddim.x * 3 * sizeof(float)));
