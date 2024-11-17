@@ -442,10 +442,6 @@ void getCameraData (std::vector<std::array<float, 3>>& cameraData)
       //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
       cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
     }
-    // Now reset the device memory to zero before the next frame render. Assumption is
-    // you'll call getCameraData() after each renderFrame()
-    ((CompoundEye*)scene.getCamera())->zeroRecordFrame();
-
   } else {
     throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
   }
