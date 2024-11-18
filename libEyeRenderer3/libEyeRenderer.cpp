@@ -79,6 +79,13 @@
   #define BUFFER_TYPE 3
 #endif
 
+// By default, call the summing kernel within launchFrame so that it will always
+// happen. It's potentially useful to call the summing kernel from inside getCameraData
+// to profile its execution (seems to take 5 ms for summing/data transfer at 2048
+// samples, dropping to 2 ms for 1024 samples on my i9/4080).
+//
+// #define SUM_AVERAGE_WITH_GETCAMERADATA 1
+
 MulticamScene scene;
 
 globalParameters::LaunchParams*  d_params = nullptr;
@@ -179,10 +186,11 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene&
       CUDA_SYNC_CHECK();
       params.frame++;// Increase the frame number
       camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
-
-      // After the compoundray pipeline, call the sample-summing CUDA kernel here
+#ifndef SUM_AVERAGE_WITH_GETCAMERADATA
+      // After the compoundray pipeline, can call the sample-summing CUDA kernel here
       camera->averageRecordFrame();
       CUDA_SYNC_CHECK();
+#endif
     }
 
     // Launch render, but only if *required* as this can add slowness
@@ -433,6 +441,11 @@ void setCameraPose(float posX, float posY, float posZ, float rotX, float rotY, f
 void getCameraData (std::vector<std::array<float, 3>>& cameraData)
 {
   if (isCompoundEyeActive() == true) {
+#ifdef SUM_AVERAGE_WITH_GETCAMERADATA
+    // Alternative place to do the sample summing. Useful here, so that you can time
+    // getCameraData() to work out how much time is taken to sum and transfer data to CPU
+    ((CompoundEye*)scene.getCamera())->averageRecordFrame();
+#endif
     size_t omcount = ((CompoundEye*)scene.getCamera())->getOmmatidialCount();
     cameraData.resize (omcount);
     float3* _data = ((CompoundEye*)scene.getCamera())->getRecordFrame();
