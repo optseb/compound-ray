@@ -389,7 +389,7 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
     ${GLFW_LIB_NAME}
     imgui
     sutil_7_sdk
-    )
+  )
 
   set_target_properties( ${target_name} PROPERTIES
     COMPILE_DEFINITIONS
@@ -429,7 +429,7 @@ add_subdirectory(sutil)
 add_subdirectory( libEyeRenderer3 )
 
 # An example eye renderer gui program
-add_subdirectory( newGuiEyeRenderer ) # gets foxed by my average_kernel
+add_subdirectory( newGuiEyeRenderer )
 
 #################################################################
 
