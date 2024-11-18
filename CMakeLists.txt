@@ -248,6 +248,11 @@ include_directories(
 # Select whether to use NVRTC or NVCC to generate PTX
 set(CUDA_NVRTC_ENABLED OFF CACHE BOOL "Use NVRTC to compile PTX at run-time instead of NVCC at build-time")
 
+# The Optix 8 CMakeLists.txt supports OptixIR, an alternative to PTX,
+# but these scripts don't, so these variables are set and not optional.
+set(SAMPLES_INPUT_GENERATE_OPTIXIR OFF)
+set(SAMPLES_INPUT_GENERATE_PTX ON)
+
 ##################################################################
 # SUtil compilation
 
