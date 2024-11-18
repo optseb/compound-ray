@@ -150,7 +150,7 @@ void handleCameraUpdate( globalParameters::LaunchParams& params )
     scene.reconfigureSBTforCurrentCamera(false);
 }
 
-// Launch Optix threads to render a frame. Once this is done getCameraData() accesses the summed/averaged values
+// Launch Optix threads to render a frame. Once this is done getCameraData() accesses the summed average values
 void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene& scene )
 {
     uchar4* result_buffer_data = output_buffer.map();

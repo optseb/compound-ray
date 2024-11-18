@@ -33,7 +33,7 @@ include("CMakeIncludes.cmake")
 add_eye_renderer("." local_eye_renderer_sources)
 
 # Mark a specific source file to be CUDA! From https://forums.developer.nvidia.com/t/how-to-compile-cuda-c-files-and-nvidia-optix-files-inside-the-same-visual-studio-project/31821/2
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/average_kernel.cu
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/summing_kernel.cu
   PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
 )
 OPTIX_add_sample_executable(EyeRenderer3 EyeRenderer3_target ${local_eye_renderer_sources} OPTIONS -rdc true)

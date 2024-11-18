@@ -58,20 +58,21 @@ void CompoundEye::copyOmmatidialDataToHost()
   CUDA_SYNC_CHECK();
 }
 
-// Called after averageRecordFrame()
+// This should be called after averageRecordFrame() has been executed
 float3* CompoundEye::getRecordFrame()
 {
-    this->copyOmmatidialDataToHost();
+    this->copyOmmatidialDataToHost(); // Copies the data in specializedData.d_compoundAvgBuffer
     return this->ommatidial_average;
 }
 
-#include "average_kernel.h"
+#include "summing_kernel.h"
 void CompoundEye::averageRecordFrame()
 {
     uint32_t omc = this->getOmmatidialCount();
     uint32_t spo = this->getSamplesPerOmmatidium();
-    // This launches a CUDA kernel to do the reduction.
-    average_kernel (reinterpret_cast<float3*>(specializedData.d_compoundBuffer),
+    // This launches a CUDA kernel to do the reduction of all the samples in
+    // d_compoundBuffer down to the averages, which end up in d_compoundAvgBuffer
+    summing_kernel (reinterpret_cast<float3*>(specializedData.d_compoundBuffer),
                     reinterpret_cast<float3*>(specializedData.d_compoundAvgBuffer), omc, spo);
 }
 

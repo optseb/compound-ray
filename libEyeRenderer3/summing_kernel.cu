@@ -1,5 +1,6 @@
-// Averaging kernel implementation
-#include "average_kernel.h"
+// An implementation of a summing kernel to add up the samples (which are already
+// divided by n_ommatidial_samples) to get the average.
+#include "summing_kernel.h"
 
 #include <cmath>
 #include <algorithm>
@@ -89,9 +90,9 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
 inline void gpuAssert (cudaError_t code, const char *file, int line, bool abort=true)
 {
    if (code != cudaSuccess) {
-       std::cerr << "CUDA_AVG: " << "GPUassert: " << cudaGetErrorString(code) << " " << file << ":" << line << std::endl;
+       std::cerr << "CUDA_SUM: " << "GPUassert: " << cudaGetErrorString(code) << " " << file << ":" << line << std::endl;
        if (abort) { exit (code); }
-   } // else { std::cout << "CUDA_AVG: " << "GPU Success: code was " << code << " (cudaSuccess)\n"; }
+   } // else { std::cout << "CUDA_SUM: " << "GPU Success: code was " << code << " (cudaSuccess)\n"; }
 }
 
 // in points to device memory containing n_arrays of n_elements float3s (RGB
@@ -118,13 +119,14 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
     stg1_griddim.y = n_arrays / stg1_blockdim.y + (n_arrays % stg1_blockdim.y ? 1 : 0);
 
 
-    // d_output is an intermediate piece of memory. May (probably) want to allocate externally with the averages memory.
+    // d_output is an intermediate piece of memory. May want to allocate this externally
+    // with the reset of the device memory
     float3* d_output = nullptr;
     // Malloc n_arrays * n_sums (which is stg1_griddim.x) elements
     gpuErrchk(cudaMalloc (&d_output, n_arrays * stg1_griddim.x * 3 * sizeof(float)));
 
-#ifdef DEBUG_CUDA_AVG1
-    std::cout << "CUDA_AVG: About to run with stg1_griddim = (" << stg1_griddim.x << " x " << stg1_griddim.y
+#ifdef DEBUG_CUDA_SUM1
+    std::cout << "CUDA_SUM: About to run with stg1_griddim = (" << stg1_griddim.x << " x " << stg1_griddim.y
               << ") and stg1_blockdim = (" << stg1_blockdim.x << " x " << stg1_blockdim.y << ") thread blocks\n";
 #endif
     reduceit_arrays<<<stg1_griddim, stg1_blockdim>>>(in, d_output, n_arrays, n_elements);
@@ -141,8 +143,8 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
     stg2_griddim.x = stg1_griddim.x / stg1_blockdim.x + (stg1_griddim.x % stg2_blockdim.x ? 1 : 0);
     stg2_griddim.y = n_arrays / stg2_blockdim.y + (n_arrays % stg2_blockdim.y ? 1 : 0);
 
-#ifdef DEBUG_CUDA_AVG2
-    std::cout << "CUDA_AVG: About to run with stg2_griddim = (" << stg2_griddim.x << " x " << stg2_griddim.y
+#ifdef DEBUG_CUDA_SUM2
+    std::cout << "CUDA_SUM: About to run with stg2_griddim = (" << stg2_griddim.x << " x " << stg2_griddim.y
               << ") and stg2_blockdim = (" << stg2_blockdim.x << " x " << stg2_blockdim.y << ") thread blocks\n";
 #endif
 
@@ -153,10 +155,10 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
 }
 
 __host__ void
-average_kernel (float3* d_omm, float3* d_avg, int n_pixels, int n_samples)
+summing_kernel (float3* d_omm, float3* d_avg, int n_pixels, int n_samples)
 {
-#ifdef DEBUG_CUDA_AVG
-    std::cout << "CUDA_AVG: " << __func__ << " called for n_pixels = " << n_pixels
+#ifdef DEBUG_CUDA_SUM
+    std::cout << "CUDA_SUM: " << __func__ << " called for n_pixels = " << n_pixels
               << " and n_samples = " << n_samples << std::endl;
 #endif
     if (d_omm == nullptr || d_avg == nullptr) { return; }
