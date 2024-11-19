@@ -1,5 +1,13 @@
-// An implementation of a summing kernel to add up the samples (which are already
-// divided by n_ommatidial_samples) to get the average.
+/*
+ * An implementation of a summing kernel to add up the samples (which are already
+ * divided by n_ommatidial_samples) to get the average.
+ *
+ * Adapted by Seb James from an example of the summing algorithm at
+ * https://developer.nvidia.com/blog/faster-parallel-reductions-kepler/
+ *
+ * \author Seb James
+ * \date November, 2024
+ */
 #include "summing_kernel.h"
 
 #include <cmath>
@@ -27,21 +35,35 @@ __inline__ __device__ float3 warpReduceSum (float valR, float valG, float valB)
 // Run by the 32 threads of a warp
 __inline__ __device__ float3 blockReduceSum (float3 val)
 {
-    static __shared__ float3 shared[32];    // Shared mem for 32 partial sums
+    static __shared__ float3 shared[32];       // Shared mem for 32 partial sums
     int lane = threadIdx.x % warpSize;
     int wid = threadIdx.x / warpSize;
     val = warpReduceSum (val.x, val.y, val.z); // Each warp performs partial reduction
-    if (lane == 0) { shared[wid] = val; }  // Write reduced value to shared memory
-    __syncthreads();                       // Wait for all partial reductions
-    // read from shared memory only if that warp existed
+    if (lane == 0) { shared[wid] = val; }      // Write reduced value to shared memory
+    __syncthreads();                           // Wait for all partial reductions to complete
 
+    // read from shared memory only if that warp existed
     val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : make_float3(0.0f, 0.0f, 0.0f);
 
-    if (wid == 0) { val = warpReduceSum (val.x, val.y, val.z); } // Final reduce within first warp
+    // Final reduction within first warp
+    if (wid == 0) { val = warpReduceSum (val.x, val.y, val.z); }
+
     return val;
 }
 
-// Input is float3 format.
+/*
+ * Perform a sum of n_arrays, each containing n_elements float3-sized data points,
+ * arranged in the device memory pointed to by in.
+ *
+ * The elements of one array are dispersed across the memory. Element 0 of array 0 is at
+ * memory location 0; element 1 of array 0 is at memory location (0 + n_elements) and so
+ * on. This results in a need to translate the thread index (called tidx in the code)
+ * which has an x component that indexes elements and a y component that indexes arrays
+ * into a memory index (midx).
+ *
+ * The result is written to out, which should be a region of device memory of size
+ * gridDim.x * n_arrays * sizeof(float3) (gridDim.x is usually 1).
+ */
 __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_elements)
 {
     float3 sum = make_float3(0.0f, 0.0f, 0.0f);
@@ -133,7 +155,7 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
 
     gpuErrchk(cudaDeviceSynchronize());
 
-    // stg1_griddim.x is 'n_sums'
+    // stg1_griddim.x is 'n_sums'. Second stage is NOT needed in this code!
     warps_base = stg1_griddim.x / 32;
     warps_extra = stg1_griddim.x % 32;
     tbx = (warps_base * 32) + (warps_extra ? 32 : 0);
