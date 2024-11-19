@@ -16,9 +16,11 @@
 #include <cuda.h>
 #include <vector_types.h> // for float3 type (a struct of 3 floats)
 
-// Ideal number of threads per block
+// Number of threads in a warp for a contemporary NVidia GPU
+static constexpr int warpthreads = 32;
+// Ideal number of threads per block for a contemporary NVidia GPU (10 series to 40 series and similar)
 static constexpr int threadsperblock = 512;
-// Mask for __shfl_down_sync
+// Mask value for __shfl_down_sync
 static constexpr unsigned int all_in_warp = 0xffffffff;
 
 // In each warp reduce three values per thread
@@ -35,7 +37,7 @@ __inline__ __device__ float3 warpReduceSum (float valR, float valG, float valB)
 // Run by the 32 threads of a warp
 __inline__ __device__ float3 blockReduceSum (float3 val)
 {
-    static __shared__ float3 shared[32];       // Shared mem for 32 partial sums
+    static __shared__ float3 shared[warpthreads];       // Shared mem for 32 partial sums
     int lane = threadIdx.x % warpSize;
     int wid = threadIdx.x / warpSize;
     val = warpReduceSum (val.x, val.y, val.z); // Each warp performs partial reduction
@@ -77,22 +79,12 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < n_elements && omm_id < n_arrays;
          i += blockDim.x * gridDim.x) { // jumps the whole threadblock as threadblock may not span all data
-
         int tidx = thread_offset + i;
-        // Convert to x/y
-        int tx = tidx % n_elements;
-        int ty = tidx / n_elements;
-        // Convert to real memory index
-        int midx = tx * n_arrays + ty;
-        if (midx < data_sz) {
-            sum.x += in[midx].x;
-            sum.y += in[midx].y;
-            sum.z += in[midx].z;
-        } else {
-            sum.x = 0.0f;
-            sum.y = 0.0f;
-            sum.z = 0.0f;
-        }
+        // Convert to x/y (int tx = (tidx % n_elements); int ty = (tidx / n_elements);) then to real memory index
+        int midx = (tidx % n_elements) * n_arrays + (tidx / n_elements);
+        sum.x += in[midx].x;
+        sum.y += in[midx].y;
+        sum.z += in[midx].z;
     }
 
     sum = blockReduceSum (sum);
@@ -102,9 +94,7 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
     if (threadIdx.x == 0 && omm_id < n_arrays) {
         // Number of sums is the number of 1D threadblocks that span n_elements. This is gridDim.x.
         size_t out_idx = omm_id * gridDim.x + blockIdx.x;
-        if (out_idx < n_arrays * gridDim.x) {
-            out[omm_id * gridDim.x + blockIdx.x] = sum;
-        }
+        if (out_idx < n_arrays * gridDim.x) { out[out_idx] = sum; }
     }
 }
 
@@ -140,33 +130,9 @@ inline void gpuAssert (cudaError_t code, const char *file, int line, bool abort=
  */
 __host__ void summing_kernel (float3* d_omm, float3* d_sums, int n_pixels, int n_samples)
 {
-#ifdef DEBUG_CUDA_SUM
-    std::cout << "CUDA_SUM: " << __func__ << " called for n_pixels = " << n_pixels
-              << " and n_samples = " << n_samples << std::endl;
-#endif
     if (d_omm == nullptr || d_sums == nullptr) { return; }
-
-    // Determine threadblock size.
-    //
-    // The constexpr threadsperblock gives an ideal block size (512). The warp size is
-    // 32. I can't mix memory values from different arrays in a threadblock, so the
-    // threadblock has to be 1D and thus configurable in size - dynamically sized to
-    // match the number of samples per pixel (n_samples - may be <512)
-    int warps_base = n_samples / 32;
-    int warps_extra = n_samples % 32;
-    int tbx = (warps_base * 32) + (warps_extra ? 32 : 0);
-    tbx = std::min (tbx, threadsperblock);
-    dim3 blockdim(tbx, 1);
-
-    // Figure out how many threadblocks to run in the threadblock grid
-    dim3 griddim(1, 1);
-    // Leave griddim.x = 1 and update griddim.y:
-    griddim.y = n_pixels / blockdim.y + (n_pixels % blockdim.y ? 1 : 0);
-
-#ifdef DEBUG_CUDA_SUM
-    std::cout << "CUDA_SUM: About to run reduceit_arrays with griddim = (" << griddim.x << " x " << griddim.y
-              << ") and blockdim = (" << blockdim.x << " x " << blockdim.y << ") thread blocks\n";
-#endif
+    dim3 blockdim(std::min (((n_samples / warpthreads) * warpthreads) + ((n_samples % warpthreads) ? warpthreads : 0), threadsperblock), 1);
+    dim3 griddim(1, n_pixels / blockdim.y + (n_pixels % blockdim.y ? 1 : 0));
     reduceit_arrays<<<griddim, blockdim>>>(d_omm, d_sums, n_pixels, n_samples);
     gpuErrchk (cudaDeviceSynchronize());
 }
