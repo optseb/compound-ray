@@ -132,7 +132,7 @@ inline void gpuAssert (cudaError_t code, const char *file, int line, bool abort=
  * sample) and avoid the need for tidx->midx translation in reduceit_arrays. However, as
  * this function is not a performance bottleneck, I'll leave it for now.
  *
- * The result is written to d_avg, which should be a region of device memory of size
+ * The result is written to d_sums, which should be a region of device memory of size
  * n_arrays * sizeof(float3).
  *
  * This host function determines threadblock size/grid size and then launches the
