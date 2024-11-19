@@ -108,8 +108,8 @@ inline void gpuAssert (cudaError_t code, const char *file, int line, bool abort=
 }
 
 /*
- * Perform a sum of n_pixels, each containing n_samples float3-sized data points,
- * arranged in the device memory pointed to by d_omm.
+ * Perform sums of n_pixels arrays, where each pixel array contains n_samples
+ * float3-sized data points, arranged in the device memory pointed to by d_omm.
  *
  * The samples of one pixel (aka ommatidium) are dispersed across the memory. Sample 0
  * of pixel 0 is at memory location 0; sample 1 of pixel 0 is at memory location (0 +
