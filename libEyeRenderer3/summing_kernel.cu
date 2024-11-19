@@ -24,7 +24,7 @@ static constexpr int threadsperblock = 512;
 static constexpr unsigned int all_in_warp = 0xffffffff;
 
 // Check a CUDA error code, exiting on failure
-inline void gpuAssert (cudaError_t code, const char *file, int line)
+inline void gpuAssert (cudaError_t code, const char* file, int line)
 {
    if (code != cudaSuccess) {
        std::cerr << "CUDA_SUM: " << "GPUassert: " << cudaGetErrorString(code) << " " << file << ":" << line << std::endl;
@@ -131,7 +131,8 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
 __host__ void summing_kernel (float3* d_omm, float3* d_sums, int n_pixels, int n_samples)
 {
     if (d_omm == nullptr || d_sums == nullptr) { return; }
-    dim3 blockdim(std::min (((n_samples / warpthreads) * warpthreads) + ((n_samples % warpthreads) ? warpthreads : 0), threadsperblock), 1);
+    int tx = std::min ((n_samples / warpthreads) * warpthreads + (n_samples % warpthreads) ? warpthreads : 0, threadsperblock);
+    dim3 blockdim(tx, 1);
     dim3 griddim(1, n_pixels / blockdim.y + (n_pixels % blockdim.y ? 1 : 0));
     reduceit_arrays<<<griddim, blockdim>>>(d_omm, d_sums, n_pixels, n_samples);
     gpuAssert (cudaDeviceSynchronize(), __FILE__, __LINE__);
