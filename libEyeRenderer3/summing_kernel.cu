@@ -140,40 +140,12 @@ __host__ void shufflesum_arrays (float3* in, int n_arrays, int n_elements, float
     //stg1_griddim.x = n_sums; // but leave this at 1
     stg1_griddim.y = n_arrays / stg1_blockdim.y + (n_arrays % stg1_blockdim.y ? 1 : 0);
 
-
-    // d_output is an intermediate piece of memory. May want to allocate this externally
-    // with the reset of the device memory
-    float3* d_output = nullptr;
-    // Malloc n_arrays * n_sums (which is stg1_griddim.x) elements
-    gpuErrchk(cudaMalloc (&d_output, n_arrays * stg1_griddim.x * 3 * sizeof(float)));
-
-#ifdef DEBUG_CUDA_SUM1
+#ifdef DEBUG_CUDA_SUM
     std::cout << "CUDA_SUM: About to run with stg1_griddim = (" << stg1_griddim.x << " x " << stg1_griddim.y
               << ") and stg1_blockdim = (" << stg1_blockdim.x << " x " << stg1_blockdim.y << ") thread blocks\n";
 #endif
-    reduceit_arrays<<<stg1_griddim, stg1_blockdim>>>(in, d_output, n_arrays, n_elements);
-
+    reduceit_arrays<<<stg1_griddim, stg1_blockdim>>>(in, d_final, n_arrays, n_elements);
     gpuErrchk(cudaDeviceSynchronize());
-
-    // stg1_griddim.x is 'n_sums'. Second stage is NOT needed in this code!
-    warps_base = stg1_griddim.x / 32;
-    warps_extra = stg1_griddim.x % 32;
-    tbx = (warps_base * 32) + (warps_extra ? 32 : 0);
-    tbx = std::min (tbx, threadsperblock);
-    dim3 stg2_blockdim(tbx, 1);
-    dim3 stg2_griddim(1, 1);
-    stg2_griddim.x = stg1_griddim.x / stg1_blockdim.x + (stg1_griddim.x % stg2_blockdim.x ? 1 : 0);
-    stg2_griddim.y = n_arrays / stg2_blockdim.y + (n_arrays % stg2_blockdim.y ? 1 : 0);
-
-#ifdef DEBUG_CUDA_SUM2
-    std::cout << "CUDA_SUM: About to run with stg2_griddim = (" << stg2_griddim.x << " x " << stg2_griddim.y
-              << ") and stg2_blockdim = (" << stg2_blockdim.x << " x " << stg2_blockdim.y << ") thread blocks\n";
-#endif
-
-    reduceit_arrays<<<stg2_griddim, stg2_blockdim>>>(d_output, d_final, n_arrays, stg1_griddim.x);
-    // out_final can be only n_arrays in size
-
-    cudaFree (d_output);
 }
 
 __host__ void
