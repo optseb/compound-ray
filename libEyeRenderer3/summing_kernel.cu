@@ -23,6 +23,15 @@ static constexpr int threadsperblock = 512;
 // Mask value for __shfl_down_sync
 static constexpr unsigned int all_in_warp = 0xffffffff;
 
+// Check a CUDA error code, exiting on failure
+inline void gpuAssert (cudaError_t code, const char *file, int line)
+{
+   if (code != cudaSuccess) {
+       std::cerr << "CUDA_SUM: " << "GPUassert: " << cudaGetErrorString(code) << " " << file << ":" << line << std::endl;
+       exit (code);
+   }
+}
+
 // In each warp reduce three values per thread
 __inline__ __device__ float3 warpReduceSum (float valR, float valG, float valB)
 {
@@ -98,15 +107,6 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
     }
 }
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert (cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess) {
-       std::cerr << "CUDA_SUM: " << "GPUassert: " << cudaGetErrorString(code) << " " << file << ":" << line << std::endl;
-       if (abort) { exit (code); }
-   } // else { std::cout << "CUDA_SUM: " << "GPU Success: code was " << code << " (cudaSuccess)\n"; }
-}
-
 /*
  * Perform sums of n_pixels arrays, where each pixel array contains n_samples
  * float3-sized data points, arranged in the device memory pointed to by d_omm.
@@ -134,5 +134,5 @@ __host__ void summing_kernel (float3* d_omm, float3* d_sums, int n_pixels, int n
     dim3 blockdim(std::min (((n_samples / warpthreads) * warpthreads) + ((n_samples % warpthreads) ? warpthreads : 0), threadsperblock), 1);
     dim3 griddim(1, n_pixels / blockdim.y + (n_pixels % blockdim.y ? 1 : 0));
     reduceit_arrays<<<griddim, blockdim>>>(d_omm, d_sums, n_pixels, n_samples);
-    gpuErrchk (cudaDeviceSynchronize());
+    gpuAssert (cudaDeviceSynchronize(), __FILE__, __LINE__);
 }
