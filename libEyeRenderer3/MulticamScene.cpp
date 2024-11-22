@@ -651,7 +651,9 @@ void loadScene( const std::string& filename, MulticamScene& scene )
             scene.m_backgroundShader = "__miss__" + bgShader;
         }
     }
-    std::cout << "Background shader set to: \"" << scene.m_backgroundShader << "\"" << std::endl;
+    if constexpr (debug_gltf == true) {
+            std::cout << "Background shader set to: \"" << scene.m_backgroundShader << "\"" << std::endl;
+    }
 
 
     //
