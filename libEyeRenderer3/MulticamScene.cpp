@@ -63,6 +63,10 @@
 namespace
 {
 
+constexpr bool debug_gltf = false;
+constexpr bool debug_cameras = true;
+constexpr bool debug_pipeline = false;
+
 float3 make_float3_from_double( double x, double y, double z )
 {
     return make_float3( static_cast<float>( x ), static_cast<float>( y ), static_cast<float>( z ) );
@@ -209,9 +213,10 @@ void processGLTFNode(
     {
         // We're dealing with cameras
         const auto& gltf_camera = model.cameras[ gltf_node.camera ];
-        std::cout << "============================"<<std::endl<<"Processing camera '" << gltf_camera.name << "'" << std::endl
-                  << "\ttype: " << gltf_camera.type << std::endl;
-
+        if constexpr (debug_gltf == true) {
+            std::cout << "============================"<<std::endl<<"Processing camera '" << gltf_camera.name << "'" << std::endl
+                      << "\ttype: " << gltf_camera.type << std::endl;
+        }
         // Get configured camera information and local axis
         const float3 upAxis      = make_float3( node_xform*make_float4_from_double( 0.0f, 1.0f,  0.0f, 0.0f ) );
         const float3 forwardAxis = make_float3( node_xform*make_float4_from_double( 0.0f, 0.0f, -1.0f, 0.0f ) );
@@ -219,10 +224,11 @@ void processGLTFNode(
 
         const float3 eye     = make_float3( node_xform*make_float4_from_double( 0.0f, 0.0f,  0.0f, 1.0f ) );
         const float  yfov   = static_cast<float>( gltf_camera.perspective.yfov ) * 180.0f / static_cast<float>( M_PI );
-        std::cout << "\teye   : " << eye.x    << ", " << eye.y    << ", " << eye.z    << std::endl;
-        std::cout << "\tfov   : " << yfov     << std::endl;
-        std::cout << "\taspect: " << gltf_camera.perspective.aspectRatio << std::endl;
-
+        if constexpr (debug_gltf == true) {
+            std::cout << "\teye   : " << eye.x    << ", " << eye.y    << ", " << eye.z    << std::endl;
+            std::cout << "\tfov   : " << yfov     << std::endl;
+            std::cout << "\taspect: " << gltf_camera.perspective.aspectRatio << std::endl;
+        }
         // Form camera objects
         if( gltf_camera.type == "orthographic" )
         {
@@ -231,28 +237,38 @@ void processGLTFNode(
           camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
           camera->setXYscale(gltf_camera.orthographic.xmag, gltf_camera.orthographic.ymag);
           int cidx = scene.addCamera(camera);
-          std::cout << "Added orthographic camera " << cidx << std::endl;
+          if constexpr (debug_cameras == true) {
+              std::cout << "Added orthographic camera " << cidx << std::endl;
+          }
           return;
         }
 
         if(isObjectsExtraValueTrue(gltf_camera.extras, "panoramic"))
         {
-          std::cout << "This camera has special indicator 'panoramic' specified, adding panoramic camera..."<<std::endl;
+          if constexpr (debug_cameras == true) {
+              std::cout << "This camera has special indicator 'panoramic' specified, adding panoramic camera..."<<std::endl;
+          }
           PanoramicCamera* camera = new PanoramicCamera(gltf_camera.name);
           camera->setPosition(eye);
           camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
           int cidx = scene.addCamera(camera);
-          std::cout << "Added panorama camera " << cidx << std::endl;
+          if constexpr (debug_cameras == true) {
+              std::cout << "Added panorama camera " << cidx << std::endl;
+          }
           return;
         }
 
         if(isObjectsExtraValueTrue(gltf_camera.extras, "compound-eye"))
         {
-          std::cout << "This camera has special indicator 'compound-eye' specified, adding compound eye based camera..."<<std::endl;
+          if constexpr (debug_cameras == true) {
+              std::cout << "This camera has special indicator 'compound-eye' specified, adding compound eye based camera..."<<std::endl;
+          }
           std::string eyeDataPath = gltf_camera.extras.Get("compound-structure").Get<std::string>();
           std::string projectionShader = gltf_camera.extras.Get("compound-projection").Get<std::string>();
-          std::cout << "  Camera internal projection type: "<<projectionShader<<std::endl;
-          std::cout << "  Camera eye data path: "<<eyeDataPath<<std::endl;
+          if constexpr (debug_cameras == true) {
+              std::cout << "  Camera internal projection type: "<<projectionShader<<std::endl;
+              std::cout << "  Camera eye data path: "<<eyeDataPath<<std::endl;
+          }
 
           if(eyeDataPath == "")
           {
@@ -281,12 +297,16 @@ void processGLTFNode(
               scene.eye_data_path = relativeEyeDataPath;
               return;
             }else{
-              std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
+              if constexpr (debug_cameras == true) {
+                std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
+              }
               usedEyeDataPath = relativeEyeDataPath;
               scene.eye_data_path = usedEyeDataPath;
             }
           }else{
-            std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
+            if constexpr (debug_cameras == true) {
+              std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
+            }
             usedEyeDataPath = eyeDataPath;
             scene.eye_data_path = usedEyeDataPath;
           }
@@ -328,15 +348,18 @@ void processGLTFNode(
         camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
         camera->setYFOV(yfov);
         int cidx = scene.addCamera( camera );
-        std::cout << "Added perspective camera..." << cidx << std::endl;
+        if constexpr (debug_cameras == true) {
+          std::cout << "Added perspective camera..." << cidx << std::endl;
+        }
     }
     else if( gltf_node.mesh != -1 && isObjectsExtraValueTrue(model.meshes[gltf_node.mesh].extras, "hitbox") )
     {
         // Process a hitbox mesh
         const auto& gltf_mesh = model.meshes[ gltf_node.mesh ];
-        std::cerr << "Processing glTF mesh as Hitbox mesh: '" << gltf_mesh.name << "'\n";
-        std::cerr << "\tNum mesh primitive groups: " << gltf_mesh.primitives.size() << std::endl;
-
+        if constexpr (debug_gltf == true) {
+            std::cerr << "Processing glTF mesh as Hitbox mesh: '" << gltf_mesh.name << "'\n";
+            std::cerr << "\tNum mesh primitive groups: " << gltf_mesh.primitives.size() << std::endl;
+        }
         //// Add a triangle mesh to the hitbox mesh list
         sutil::hitscan::TriangleMesh tm;
         tm.name = gltf_mesh.name;
@@ -350,8 +373,10 @@ void processGLTFNode(
     else if( gltf_node.mesh != -1 )
     {
         const auto& gltf_mesh = model.meshes[ gltf_node.mesh ];
-        std::cerr << "Processing glTF mesh: '" << gltf_mesh.name << "'\n";
-        std::cerr << "\tNum mesh primitive groups: " << gltf_mesh.primitives.size() << std::endl;
+        if constexpr (debug_gltf == true) {
+            std::cerr << "Processing glTF mesh: '" << gltf_mesh.name << "'\n";
+            std::cerr << "\tNum mesh primitive groups: " << gltf_mesh.primitives.size() << std::endl;
+        }
         for( auto& gltf_primitive : gltf_mesh.primitives )
         {
             if( gltf_primitive.mode != TINYGLTF_MODE_TRIANGLES ) // Ignore non-triangle meshes
@@ -371,8 +396,9 @@ void processGLTFNode(
             mesh->indices.push_back( bufferViewFromGLTF<uint32_t>( model, scene, gltf_primitive.indices ) );
             mesh->material_idx.push_back( gltf_primitive.material );
             mesh->transform = node_xform;
-            std::cerr << "\t\tNum triangles: " << mesh->indices.back().count / 3 << std::endl;
-
+            if constexpr (debug_gltf == true) {
+              std::cerr << "\t\tNum triangles: " << mesh->indices.back().count / 3 << std::endl;
+            }
             assert( gltf_primitive.attributes.find( "POSITION" ) !=  gltf_primitive.attributes.end() );
             const int32_t pos_accessor_idx =  gltf_primitive.attributes.at( "POSITION" );
             mesh->positions.push_back( bufferViewFromGLTF<float3>( model, scene, pos_accessor_idx ) );
@@ -395,24 +421,32 @@ void processGLTFNode(
             auto normal_accessor_iter = gltf_primitive.attributes.find( "NORMAL" ) ;
             if( normal_accessor_iter  !=  gltf_primitive.attributes.end() )
             {
-                std::cerr << "\t\tHas vertex normals: true\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\t\tHas vertex normals: true\n";
+                }
                 mesh->normals.push_back( bufferViewFromGLTF<float3>( model, scene, normal_accessor_iter->second ) );
             }
             else
             {
-                std::cerr << "\t\tHas vertex normals: false\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\t\tHas vertex normals: false\n";
+                }
                 mesh->normals.push_back( bufferViewFromGLTF<float3>( model, scene, -1 ) );
             }
 
             auto texcoord_accessor_iter = gltf_primitive.attributes.find( "TEXCOORD_0" ) ;
             if( texcoord_accessor_iter  !=  gltf_primitive.attributes.end() )
             {
-                std::cerr << "\t\tHas texcoords: true\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\t\tHas texcoords: true\n";
+                }
                 mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, texcoord_accessor_iter->second ) );
             }
             else
             {
-                std::cerr << "\t\tHas texcoords: false\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\t\tHas texcoords: false\n";
+                }
                 mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, -1 ) );
             }
 
@@ -420,7 +454,9 @@ void processGLTFNode(
 
             if(vertex_colours_accessor_iter != gltf_primitive.attributes.end() ) // TODO: UNFIX
             {
-                std::cerr << "\t\tHas vertex colours: true (so we're using them)\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\t\tHas vertex colours: true (so we're using them)\n";
+                }
                 // TODO: Add support for vec3 vertex colours here.
                 // Check that the vertex colours are 4-component:
                 const tinygltf::Accessor& vertex_colours_gltf_accessor = model.accessors[ vertex_colours_accessor_iter->second ];
@@ -439,7 +475,9 @@ void processGLTFNode(
                   switch(componentType)
                   {
                     case TINYGLTF_COMPONENT_TYPE_FLOAT:
-                      std::cerr << "\t\t\tComponent type is float.\n";
+                      if constexpr (debug_gltf == true) {
+                        std::cerr << "\t\t\tComponent type is float.\n";
+                      }
                       mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, vertex_colours_accessor_iter->second ) );
 
                       // We must populate the other buffers so that indices align
@@ -448,7 +486,9 @@ void processGLTFNode(
                       mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1) );
                       break;
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-                      std::cerr << "\t\t\tComponent type is unsigned short.\n";
+                      if constexpr (debug_gltf == true) {
+                        std::cerr << "\t\t\tComponent type is unsigned short.\n";
+                      }
                       mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, vertex_colours_accessor_iter->second ) );
 
                       // We must populate the other buffers so that indices align
@@ -457,7 +497,9 @@ void processGLTFNode(
                       mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1) );
                       break;
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-                      std::cerr << "\t\t\tComponent type is unsigned byte.\n";
+                      if constexpr (debug_gltf == true) {
+                        std::cerr << "\t\t\tComponent type is unsigned byte.\n";
+                      }
                       mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, vertex_colours_accessor_iter->second ) );
 
                       // We must populate the other buffers so that indices align
@@ -466,8 +508,9 @@ void processGLTFNode(
                       mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
                       break;
                     default:
-                      std::cerr << "\t\t\tComponent type is not supported.\n";
-
+                      if constexpr (debug_gltf == true) {
+                        std::cerr << "\t\t\tComponent type is not supported.\n";
+                      }
                       // We must populate the other buffers so that indices align
                       mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
                       mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
@@ -486,8 +529,9 @@ void processGLTFNode(
                 }
                 else if (vertex_colours_gltf_accessor.type == TINYGLTF_TYPE_VEC3)
                 {
-                  std::cerr << "\t\t\tWarning: Vertex colours are of type vec3.\n";
-
+                  if constexpr (debug_gltf == true) {
+                    std::cerr << "\t\t\tWarning: Vertex colours are of type vec3.\n";
+                  }
                   // const tinygltf::BufferView& colour_buffer_view = model.bufferViews[ vertex_colours_gltf_accessor.bufferView ]; // unused
                   // const tinygltf::Buffer& colour_buffer = model.buffers[ colour_buffer_view.buffer ]; // unused
 
@@ -500,7 +544,9 @@ void processGLTFNode(
                   switch(componentType)
                   {
                     case TINYGLTF_COMPONENT_TYPE_FLOAT:
-                      std::cerr << "\t\t\tComponent type is float.\n";
+                      if constexpr (debug_gltf == true) {
+                        std::cerr << "\t\t\tComponent type is float.\n";
+                      }
                       mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, vertex_colours_accessor_iter->second ) );
 
                       // We must populate the other buffers so that indices align
@@ -511,8 +557,7 @@ void processGLTFNode(
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
                     default:
-                      std::cerr << "\t\t\tComponent type is not supported.\n";
-
+                      std::cerr << "\t\t\tThis component type is not supported.\n";
                       // We must populate the other buffers so that indices align
                       mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
                       mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
@@ -542,7 +587,9 @@ void processGLTFNode(
             }
             else
             {
-                std::cerr << "\t\tHas vertex colours: false\n";
+                if constexpr (debug_gltf == true) {
+                  std::cerr << "\t\tHas vertex colours: false\n";
+                }
                 mesh->host_color_types.push_back(-1);
                 // We must populate the other buffers so that indices align
                 mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
@@ -587,11 +634,15 @@ void loadScene( const std::string& filename, MulticamScene& scene )
       glTFdir = filename.substr(0,slashPos);
 
     // Retrieve background shader information if it exists
-    std::cout << "Searching for background shader..." << std::endl;
+    if constexpr (debug_gltf == true) {
+      std::cout << "Searching for background shader..." << std::endl;
+    }
     for(auto modelScene : model.scenes)
     {
       std::string bgShader = modelScene.extras.Get("background-shader").Get<std::string>();
-      std::cout << "\tBackground shader string detected: \"" << bgShader << "\"" << std::endl;
+      if constexpr (debug_gltf == true) {
+        std::cout << "\tBackground shader string detected: \"" << bgShader << "\"" << std::endl;
+      }
 
       if(bgShader != "")
       {
@@ -607,10 +658,11 @@ void loadScene( const std::string& filename, MulticamScene& scene )
     for( const auto& gltf_buffer : model.buffers )
     {
         const uint64_t buf_size = gltf_buffer.data.size();
-        std::cerr << "Processing glTF buffer '" << gltf_buffer.name << "'\n"
-                  << "\tbyte size: " << buf_size << "\n"
-                  << "\turi      : " << (buf_size > 128u ? gltf_buffer.uri.substr(0, 128) + std::string("...") : gltf_buffer.uri) << std::endl;
-
+        if constexpr (debug_gltf == true) {
+            std::cerr << "Processing glTF buffer '" << gltf_buffer.name << "'\n"
+                      << "\tbyte size: " << buf_size << "\n"
+                      << "\turi      : " << (buf_size > 128u ? gltf_buffer.uri.substr(0, 128) + std::string("...") : gltf_buffer.uri) << std::endl;
+        }
         scene.addBuffer( buf_size,  gltf_buffer.data.data() );
     }
 
@@ -619,10 +671,11 @@ void loadScene( const std::string& filename, MulticamScene& scene )
     //
     for( const auto& gltf_image : model.images )
     {
-        std::cerr << "Processing image '" << gltf_image.name << "'\n"
-                  << "\t(" << gltf_image.width << "x" << gltf_image.height << ")x" << gltf_image.component << "\n"
-                  << "\tbits: " << gltf_image.bits << std::endl;
-
+        if constexpr (debug_gltf == true) {
+            std::cerr << "Processing image '" << gltf_image.name << "'\n"
+                      << "\t(" << gltf_image.width << "x" << gltf_image.height << ")x" << gltf_image.component << "\n"
+                      << "\tbits: " << gltf_image.bits << std::endl;
+        }
         assert( gltf_image.component == 4 );
         assert( gltf_image.bits      == 8 || gltf_image.bits == 16 );
 
@@ -664,7 +717,9 @@ void loadScene( const std::string& filename, MulticamScene& scene )
     //
     for( auto& gltf_material : model.materials )
     {
-        std::cerr << "Processing glTF material: '" << gltf_material.name << "'\n";
+        if constexpr (debug_gltf == true) {
+            std::cerr << "Processing glTF material: '" << gltf_material.name << "'\n";
+        }
         MaterialData::Pbr mtl;
 
         {
@@ -673,15 +728,19 @@ void loadScene( const std::string& filename, MulticamScene& scene )
             {
                 const tinygltf::ColorValue c = base_color_it->second.ColorFactor();
                 mtl.base_color = make_float4_from_double( c[0], c[1], c[2], c[3] );
-                std::cerr
+                if constexpr (debug_gltf == true) {
+                    std::cerr
                     << "\tBase color: ("
                     << mtl.base_color.x << ", "
                     << mtl.base_color.y << ", "
                     << mtl.base_color.z << ")\n";
+                }
             }
             else
             {
-                std::cerr << "\tUsing default base color factor\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tUsing default base color factor\n";
+                }
             }
         }
 
@@ -689,12 +748,16 @@ void loadScene( const std::string& filename, MulticamScene& scene )
             const auto base_color_it = gltf_material.values.find( "baseColorTexture" );
             if( base_color_it != gltf_material.values.end() )
             {
-                std::cerr << "\tFound base color tex: " << base_color_it->second.TextureIndex() << "\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tFound base color tex: " << base_color_it->second.TextureIndex() << "\n";
+                }
                 mtl.base_color_tex = scene.getSampler( base_color_it->second.TextureIndex() );
             }
             else
             {
-                std::cerr << "\tNo base color tex\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tNo base color tex\n";
+                }
             }
         }
 
@@ -703,11 +766,15 @@ void loadScene( const std::string& filename, MulticamScene& scene )
             if( roughness_it != gltf_material.values.end() )
             {
                 mtl.roughness = static_cast<float>( roughness_it->second.Factor() );
-                std::cerr << "\tRougness:  " << mtl.roughness <<  "\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tRougness:  " << mtl.roughness <<  "\n";
+                }
             }
             else
             {
-                std::cerr << "\tUsing default roughness factor\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tUsing default roughness factor\n";
+                }
             }
         }
 
@@ -716,11 +783,15 @@ void loadScene( const std::string& filename, MulticamScene& scene )
             if( metallic_it != gltf_material.values.end() )
             {
                 mtl.metallic = static_cast<float>( metallic_it->second.Factor() );
-                std::cerr << "\tMetallic:  " << mtl.metallic <<  "\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tMetallic:  " << mtl.metallic <<  "\n";
+                }
             }
             else
             {
-                std::cerr << "\tUsing default metallic factor\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tUsing default metallic factor\n";
+                }
             }
         }
 
@@ -728,12 +799,16 @@ void loadScene( const std::string& filename, MulticamScene& scene )
             const auto metallic_roughness_it = gltf_material.values.find( "metallicRoughnessTexture" );
             if( metallic_roughness_it != gltf_material.values.end() )
             {
-                std::cerr << "\tFound metallic roughness tex: " << metallic_roughness_it->second.TextureIndex() << "\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tFound metallic roughness tex: " << metallic_roughness_it->second.TextureIndex() << "\n";
+                }
                 mtl.metallic_roughness_tex = scene.getSampler( metallic_roughness_it->second.TextureIndex() );
             }
             else
             {
-                std::cerr << "\tNo metallic roughness tex\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tNo metallic roughness tex\n";
+                }
             }
         }
 
@@ -741,12 +816,16 @@ void loadScene( const std::string& filename, MulticamScene& scene )
             const auto normal_it = gltf_material.additionalValues.find( "normalTexture" );
             if( normal_it != gltf_material.additionalValues.end() )
             {
-                std::cerr << "\tFound normal color tex: " << normal_it->second.TextureIndex() << "\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tFound normal color tex: " << normal_it->second.TextureIndex() << "\n";
+                }
                 mtl.normal_tex = scene.getSampler( normal_it->second.TextureIndex() );
             }
             else
             {
-                std::cerr << "\tNo normal tex\n";
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\tNo normal tex\n";
+                }
             }
         }
 
@@ -954,7 +1033,9 @@ GenericCamera* MulticamScene::getCamera()
     return m_cameras[currentCamera];
   }
 
-  std::cerr << "Initializing default camera" << std::endl;
+  if constexpr (debug_cameras == true) {
+      std::cerr << "Initializing default camera" << std::endl;
+  }
   //cam.setFovY( 45.0f );
   //cam.setLookat( m_scene_aabb.center() );
   //cam.setEye   ( m_scene_aabb.center() + make_float3( 0.0f, 0.0f, 1.5f*m_scene_aabb.maxExtent() ) );
@@ -992,8 +1073,10 @@ uint32_t MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, s
 {
   m_compoundEyes[cam_idx] = cameraPtr;
   m_ommVecs[cam_idx] = ommVec;
-  std::cout << "Inserted ommVec of size " << m_ommVecs[cam_idx].size()
-            << " into m_ommVecs[" << cam_idx << "].\n";
+  if constexpr (debug_cameras == true) {
+      std::cout << "Inserted ommVec of size " << m_ommVecs[cam_idx].size()
+                << " into m_ommVecs[" << cam_idx << "].\n";
+  }
   return (m_compoundEyes.size()-1);
 }
 void MulticamScene::checkIfCurrentCameraIsCompound()
@@ -1620,9 +1703,9 @@ void MulticamScene::createProgramGroups()
 
 void MulticamScene::createPipeline()
 {
-  #ifdef DEBUG
-  std::cout << "Generating Projection pipeline..." << std::endl;
-  #endif
+  if constexpr (debug_pipeline == true) {
+    std::cout << "Generating Projection pipeline..." << std::endl;
+  }
   OptixProgramGroup program_groups[] =
   {
       m_raygen_prog_group,
@@ -1651,9 +1734,9 @@ void MulticamScene::createPipeline()
 
 void MulticamScene::createCompoundPipeline()
 {
-  #ifdef DEBUG
-  std::cout << "Generating Compound pipeline..." << std::endl;
-  #endif
+  if constexpr (debug_pipeline == true) {
+    std::cout << "Generating Compound pipeline..." << std::endl;
+  }
   OptixProgramGroup program_groups[] =
   {
       m_compound_raygen_group,
@@ -1691,7 +1774,9 @@ void MulticamScene::reconfigureSBTforCurrentCamera(bool force)
   {
     lastPipelinedCamera = currentCamera;// update the pointer
     raygen_prog_group_desc.raygen.entryFunctionName = c->getEntryFunctionName();
-    std::cout<< "ALERT: Regenerating pipeline with raygen entry function '"<<c->getEntryFunctionName()<<"'."<<std::endl;
+    if constexpr (debug_pipeline == true) {
+      std::cout<< "ALERT: Regenerating pipeline with raygen entry function '"<<c->getEntryFunctionName()<<"'."<<std::endl;
+    }
     // THIS is where the projection shader is set up
     optixProgramGroupDestroy(m_raygen_prog_group);
     OPTIX_CHECK_LOG( optixProgramGroupCreate(
@@ -1800,8 +1885,7 @@ void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
 //// Additional scene features
 bool MulticamScene::isInsideHitGeometry(float3 worldPos, std::string name, bool debug)
 {
-  if(debug)
-    std::cout << "Atempting hitscan against \"" << name << "\"\n";
+  if(debug) { std::cout << "Atempting hitscan against \"" << name << "\"\n"; }
 
   // Search through each of the m_hitboxMeshes until we find the hitbox mesh we care about
   sutil::hitscan::TriangleMesh* hitboxMesh = nullptr;
@@ -1821,15 +1905,13 @@ bool MulticamScene::isInsideHitGeometry(float3 worldPos, std::string name, bool 
     return false;
   }
 
-  if(debug)
-    std::cout << "\tMesh acquired.\n";
+  if(debug) { std::cout << "\tMesh acquired.\n"; }
 
   // First quickly check if the point is within the mesh's AABB:
   //if(!hitboxMesh->worldAabb.contains(worldPos))
   //  return false; // If it doesn't contain it, then it certainly ain't gunna be in the model.
 
-  if(debug)
-    std::cout << "\tPoint within mesh bounds.\n";
+  if(debug) { std::cout << "\tPoint within mesh bounds.\n"; }
 
   // Perform a within-mesh hitscan against the selected mesh
   return sutil::hitscan::isPointWithinMesh(*hitboxMesh, worldPos);
