@@ -74,7 +74,7 @@ using namespace sutil;
 
 class MulticamScene
 {
-  public:
+public:
     struct MeshGroup
     {
         std::string                       name;
@@ -102,19 +102,19 @@ class MulticamScene
 
     struct HitboxMeshGroup
     {
-      std::string name;
-      Matrix4x4 transform;
+        std::string name;
+        Matrix4x4 transform;
 
-      std::vector<std::shared_ptr<std::vector<uint32_t>>> indices;
-      std::vector<std::shared_ptr<std::vector<float3>>> positions;
+        std::vector<std::shared_ptr<std::vector<uint32_t>>> indices;
+        std::vector<std::shared_ptr<std::vector<float3>>> positions;
 
-      Aabb object_aabb;
-      Aabb world_aabb;
+        Aabb object_aabb;
+        Aabb world_aabb;
     };
 
     struct Triangle
     {
-      float p1, p2, p3;
+        float p1, p2, p3;
     };
 
     ~MulticamScene();// Destructor
@@ -127,18 +127,18 @@ class MulticamScene
     void addMaterial( const MaterialData::Pbr& mtl    )    { m_materials.push_back( mtl );     }
     void addBuffer  ( const uint64_t buf_size, const void* data );
     void addImage(
-                const int32_t width,
-                const int32_t height,
-                const int32_t bits_per_component,
-                const int32_t num_components,
-                const void*   data
-                );
+        const int32_t width,
+        const int32_t height,
+        const int32_t bits_per_component,
+        const int32_t num_components,
+        const void*   data
+        );
     void addSampler(
-                cudaTextureAddressMode address_s,
-                cudaTextureAddressMode address_t,
-                cudaTextureFilterMode  filter_mode,
-                const int32_t          image_idx
-                );
+        cudaTextureAddressMode address_s,
+        cudaTextureAddressMode address_t,
+        cudaTextureFilterMode  filter_mode,
+        const int32_t          image_idx
+        );
 
     CUdeviceptr                    getBuffer ( int32_t buffer_index  )const;
     cudaArray_t                    getImage  ( int32_t image_index   )const;
@@ -200,7 +200,7 @@ class MulticamScene
     // Rendering the OpenGL window costs time, make it optional
     bool enable_render_window = true;
 
-  private:
+private:
     void createPTXModule();
     void createProgramGroups();
     void createPipeline();
