@@ -84,7 +84,7 @@
 // to profile its execution (seems to take 5 ms for summing/data transfer at 2048
 // samples, dropping to 2 ms for 1024 samples on my i9/4080).
 //
-// #define SUM_AVERAGE_WITH_GETCAMERADATA 1
+static constexpr bool sum_average_with_getCameraData = false;
 
 MulticamScene scene;
 
@@ -186,11 +186,12 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene&
       CUDA_SYNC_CHECK();
       params.frame++;// Increase the frame number
       camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
-#ifndef SUM_AVERAGE_WITH_GETCAMERADATA
-      // After the compoundray pipeline, can call the sample-summing CUDA kernel here
-      camera->averageRecordFrame();
-      CUDA_SYNC_CHECK();
-#endif
+
+      if constexpr (sum_average_with_getCameraData == false) {
+        // After the compoundray pipeline, can call the sample-summing CUDA kernel here
+        camera->averageRecordFrame();
+        CUDA_SYNC_CHECK();
+      }
     }
 
     // Launch render, but only if *required* as this can add slowness
@@ -441,11 +442,12 @@ void setCameraPose(float posX, float posY, float posZ, float rotX, float rotY, f
 void getCameraData (std::vector<std::array<float, 3>>& cameraData)
 {
   if (isCompoundEyeActive() == true) {
-#ifdef SUM_AVERAGE_WITH_GETCAMERADATA
-    // Alternative place to do the sample summing. Useful here, so that you can time
-    // getCameraData() to work out how much time is taken to sum and transfer data to CPU
-    ((CompoundEye*)scene.getCamera())->averageRecordFrame();
-#endif
+
+    if constexpr (sum_average_with_getCameraData == true) {
+      // Alternative place to do the sample summing. Useful here, so that you can time
+      // getCameraData() to work out how much time is taken to sum and transfer data to CPU
+      ((CompoundEye*)scene.getCamera())->averageRecordFrame();
+    }
     size_t omcount = ((CompoundEye*)scene.getCamera())->getOmmatidialCount();
     cameraData.resize (omcount);
     float3* _data = ((CompoundEye*)scene.getCamera())->getRecordFrame();
