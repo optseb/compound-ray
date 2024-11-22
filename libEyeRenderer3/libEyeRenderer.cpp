@@ -67,16 +67,16 @@
 
 //#define USE_IAS // WAR for broken direct intersection of GAS on non-RTX cards
 #ifdef BUFFER_TYPE_CUDA_DEVICE
-  #define BUFFER_TYPE 0
+#define BUFFER_TYPE 0
 #endif
 #ifdef BUFFER_TYPE_GL_INTEROP
-  #define BUFFER_TYPE 1
+#define BUFFER_TYPE 1
 #endif
 #ifdef BUFFER_TYPE_ZERO_COPY
-  #define BUFFER_TYPE 2
+#define BUFFER_TYPE 2
 #endif
 #ifdef BUFFER_TYPE_CUDA_P2P
-  #define BUFFER_TYPE 3
+#define BUFFER_TYPE 3
 #endif
 
 // By default, call the summing kernel within launchFrame so that it will always
@@ -128,15 +128,15 @@ void initLaunchParams( const MulticamScene& scene ) {
 
     params.lights.count  = static_cast<uint32_t>( lights.size() );
     CUDA_CHECK( cudaMalloc(
-                reinterpret_cast<void**>( &params.lights.data ),
-                lights.size() * sizeof( Light::Point )
-                ) );
+                    reinterpret_cast<void**>( &params.lights.data ),
+                    lights.size() * sizeof( Light::Point )
+                    ) );
     CUDA_CHECK( cudaMemcpy(
-                reinterpret_cast<void*>( params.lights.data ),
-                lights.data(),
-                lights.size() * sizeof( Light::Point ),
-                cudaMemcpyHostToDevice
-                ) );
+                    reinterpret_cast<void*>( params.lights.data ),
+                    lights.data(),
+                    lights.size() * sizeof( Light::Point ),
+                    cudaMemcpyHostToDevice
+                    ) );
 
     params.miss_color   = make_float3( 0.1f );
 
@@ -163,35 +163,35 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene&
     uchar4* result_buffer_data = output_buffer.map();
     params.frame_buffer        = result_buffer_data;
     CUDA_CHECK( cudaMemcpyAsync( reinterpret_cast<void*>( d_params ),
-                &params,
-                sizeof( globalParameters::LaunchParams ),
-                cudaMemcpyHostToDevice,
-                0 // stream
-                ) );
+                                 &params,
+                                 sizeof( globalParameters::LaunchParams ),
+                                 cudaMemcpyHostToDevice,
+                                 0 // stream
+                    ) );
 
     if(scene.hasCompoundEyes() && scene.isCompoundEyeActive())
     {
-      CompoundEye* camera = (CompoundEye*) scene.getCamera();
-      // Launch the ommatidial renderer
-      OPTIX_CHECK( optixLaunch(
-                  scene.compoundPipeline(),
-                  0,             // stream
-                  reinterpret_cast<CUdeviceptr>( d_params ),
-                  sizeof( globalParameters::LaunchParams ),
-                  scene.compoundSbt(),
-                  camera->getOmmatidialCount(),      // launch width
-                  camera->getSamplesPerOmmatidium(), // launch height
-                  1                                  // launch depth
-                  ) );
-      CUDA_SYNC_CHECK();
-      params.frame++;// Increase the frame number
-      camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
-
-      if constexpr (sum_average_with_getCameraData == false) {
-        // After the compoundray pipeline, can call the sample-summing CUDA kernel here
-        camera->averageRecordFrame();
+        CompoundEye* camera = (CompoundEye*) scene.getCamera();
+        // Launch the ommatidial renderer
+        OPTIX_CHECK( optixLaunch(
+                         scene.compoundPipeline(),
+                         0,             // stream
+                         reinterpret_cast<CUdeviceptr>( d_params ),
+                         sizeof( globalParameters::LaunchParams ),
+                         scene.compoundSbt(),
+                         camera->getOmmatidialCount(),      // launch width
+                         camera->getSamplesPerOmmatidium(), // launch height
+                         1                                  // launch depth
+                         ) );
         CUDA_SYNC_CHECK();
-      }
+        params.frame++;// Increase the frame number
+        camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
+
+        if constexpr (sum_average_with_getCameraData == false) {
+            // After the compoundray pipeline, can call the sample-summing CUDA kernel here
+            camera->averageRecordFrame();
+            CUDA_SYNC_CHECK();
+        }
     }
 
     // Launch render, but only if *required* as this can add slowness
@@ -228,103 +228,103 @@ void cleanup()
 //------------------------------------------------------------------------------
 void setVerbosity(bool v)
 {
-  notificationsActive = v;
+    notificationsActive = v;
 }
 void loadGlTFscene(const char* filepath)
 {
-  loadScene(filepath, scene);
-  scene.finalize();
-  initLaunchParams(scene);
+    loadScene(filepath, scene);
+    scene.finalize();
+    initLaunchParams(scene);
 }
 void setRenderSize(int w, int h)
 {
-  width = w;
-  height = h;
-  if(notificationsActive)
-    std::cout<<"[PyEye] Resizing rendering buffer to ("<<w<<", "<<h<<")."<<std::endl;
-  GLFWwindow* ctx = glfwGetCurrentContext();
-  if (ctx != window) { glfwMakeContextCurrent (window); }
-  outputBuffer.resize(width, height);
-  glfwMakeContextCurrent (ctx);
+    width = w;
+    height = h;
+    if(notificationsActive)
+        std::cout<<"[PyEye] Resizing rendering buffer to ("<<w<<", "<<h<<")."<<std::endl;
+    GLFWwindow* ctx = glfwGetCurrentContext();
+    if (ctx != window) { glfwMakeContextCurrent (window); }
+    outputBuffer.resize(width, height);
+    glfwMakeContextCurrent (ctx);
 }
 double renderFrame(void)
 {
-  handleCameraUpdate(params);// Update the params to accurately reflect the currently selected camera
+    handleCameraUpdate(params);// Update the params to accurately reflect the currently selected camera
 
-  auto then = std::chrono::steady_clock::now();
-  launchFrame( outputBuffer, scene );
-  CUDA_SYNC_CHECK();
-  std::chrono::duration<double, std::milli> render_time = std::chrono::steady_clock::now() - then;
+    auto then = std::chrono::steady_clock::now();
+    launchFrame( outputBuffer, scene );
+    CUDA_SYNC_CHECK();
+    std::chrono::duration<double, std::milli> render_time = std::chrono::steady_clock::now() - then;
 
-  if (notificationsActive) {
-      std::cout<<"[PyEye] Rendered frame in "<<render_time.count()<<"ms."<<std::endl;
-  }
+    if (notificationsActive) {
+        std::cout<<"[PyEye] Rendered frame in "<<render_time.count()<<"ms."<<std::endl;
+    }
 
-  return(render_time.count());
+    return(render_time.count());
 }
 void displayFrame(void)
 {
-  int framebuf_res_x = 0;   // The display's resolution (could be HDPI res)
-  int framebuf_res_y = 0;   //
-  glfwGetFramebufferSize( window, &framebuf_res_x, &framebuf_res_y );
+    int framebuf_res_x = 0;   // The display's resolution (could be HDPI res)
+    int framebuf_res_y = 0;   //
+    glfwGetFramebufferSize( window, &framebuf_res_x, &framebuf_res_y );
 
-  GLFWwindow* ctx = glfwGetCurrentContext();
-  // Just in case the user just selected another window:
-  if (ctx != window) { glfwMakeContextCurrent (window); }
-  gl_display.display(
-          outputBuffer.width(),
-          outputBuffer.height(),
-          framebuf_res_x,
-          framebuf_res_y,
-          outputBuffer.getPBO()
-          );
+    GLFWwindow* ctx = glfwGetCurrentContext();
+    // Just in case the user just selected another window:
+    if (ctx != window) { glfwMakeContextCurrent (window); }
+    gl_display.display(
+        outputBuffer.width(),
+        outputBuffer.height(),
+        framebuf_res_x,
+        framebuf_res_y,
+        outputBuffer.getPBO()
+        );
 
-  // Swap the buffer
-  glfwSwapBuffers(window);
-  glfwMakeContextCurrent (ctx);
+    // Swap the buffer
+    glfwSwapBuffers(window);
+    glfwMakeContextCurrent (ctx);
 }
 void saveFrameAs(const char* ppmFilename)
 {
-  sutil::ImageBuffer buffer;
-  buffer.data = outputBuffer.getHostPointer();
-  buffer.width = outputBuffer.width();
-  buffer.height = outputBuffer.height();
-  buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
-  sutil::displayBufferFile(ppmFilename, buffer, false);
-  if(notificationsActive)
-    std::cout<<"[PyEye] Saved render as '"<<ppmFilename<<"'"<<std::endl;
+    sutil::ImageBuffer buffer;
+    buffer.data = outputBuffer.getHostPointer();
+    buffer.width = outputBuffer.width();
+    buffer.height = outputBuffer.height();
+    buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+    sutil::displayBufferFile(ppmFilename, buffer, false);
+    if(notificationsActive)
+        std::cout<<"[PyEye] Saved render as '"<<ppmFilename<<"'"<<std::endl;
 }
 unsigned char* getFramePointer(void)
 {
-  if(notificationsActive)
-    std::cout<<"[PyEye] Retrieving frame pointer..."<<std::endl;
-  return (unsigned char*)outputBuffer.getHostPointer();
+    if(notificationsActive)
+        std::cout<<"[PyEye] Retrieving frame pointer..."<<std::endl;
+    return (unsigned char*)outputBuffer.getHostPointer();
 }
 void getFrame(unsigned char* frame)
 {
-  if(notificationsActive)
-    std::cout<<"[PyEye] Retrieving frame..."<<std::endl;
-  size_t displaySize = outputBuffer.width()*outputBuffer.height();
-  for(size_t i = 0; i<displaySize; i++)
-  {
-    unsigned char val = (unsigned char)(((float)i/(float)displaySize)*254);
-    frame[displaySize*3 + 0] = val;
-    frame[displaySize*3 + 1] = val;
-    frame[displaySize*3 + 2] = val;
-  }
+    if(notificationsActive)
+        std::cout<<"[PyEye] Retrieving frame..."<<std::endl;
+    size_t displaySize = outputBuffer.width()*outputBuffer.height();
+    for(size_t i = 0; i<displaySize; i++)
+    {
+        unsigned char val = (unsigned char)(((float)i/(float)displaySize)*254);
+        frame[displaySize*3 + 0] = val;
+        frame[displaySize*3 + 1] = val;
+        frame[displaySize*3 + 2] = val;
+    }
 }
 void stop(void)
 {
-  if(notificationsActive)
-    std::cout<<"[PyEye] Cleaning eye renderer resources."<<std::endl;
-  sutil::cleanupUI(window);
-  cleanup();
+    if(notificationsActive)
+        std::cout<<"[PyEye] Cleaning eye renderer resources."<<std::endl;
+    sutil::cleanupUI(window);
+    cleanup();
 }
 
 // C-level only
 void * getWindowPointer()
 {
-  return (void*)window;
+    return (void*)window;
 }
 
 //------------------------------------------------------------------------------
@@ -332,134 +332,134 @@ void * getWindowPointer()
 //------------------------------------------------------------------------------
 size_t getCameraCount()
 {
-  return(scene.getCameraCount());
+    return(scene.getCameraCount());
 }
 void nextCamera(void)
 {
-  scene.nextCamera();
+    scene.nextCamera();
 }
 size_t getCurrentCameraIndex(void)
 {
-  return(scene.getCameraIndex());
+    return(scene.getCameraIndex());
 }
 const char* getCurrentCameraName(void)
 {
-  return(scene.getCamera()->getCameraName());
+    return(scene.getCamera()->getCameraName());
 }
 void previousCamera(void)
 {
-  scene.previousCamera();
+    scene.previousCamera();
 }
 void gotoCamera(int index)
 {
-  scene.setCurrentCamera(index);
+    scene.setCurrentCamera(index);
 }
 bool gotoCameraByName(char* name)
 {
-  scene.setCurrentCamera(0);
-  for(auto i = 0u; i<scene.getCameraCount(); i++)
-  {
-    if(strcmp(name, scene.getCamera()->getCameraName()) == 0)
-      return true;
-    scene.nextCamera();
-  }
-  return false;
+    scene.setCurrentCamera(0);
+    for(auto i = 0u; i<scene.getCameraCount(); i++)
+    {
+        if(strcmp(name, scene.getCamera()->getCameraName()) == 0)
+            return true;
+        scene.nextCamera();
+    }
+    return false;
 }
 void setCameraPosition(float x, float y, float z)
 {
-  scene.getCamera()->setPosition(make_float3(x,y,z));
+    scene.getCamera()->setPosition(make_float3(x,y,z));
 }
 void getCameraPosition(float& x, float& y, float& z)
 {
-  const float3& camPos = scene.getCamera()->getPosition();
-  x = camPos.x;
-  y = camPos.y;
-  z = camPos.z;
+    const float3& camPos = scene.getCamera()->getPosition();
+    x = camPos.x;
+    y = camPos.y;
+    z = camPos.z;
 }
 void setCameraLocalSpace(float lxx, float lxy, float lxz,
                          float lyx, float lyy, float lyz,
                          float lzx, float lzy, float lzz)
 {
-  scene.getCamera()->setLocalSpace(make_float3(lxx, lxy, lxz),
-                                   make_float3(lyx, lyy, lyz),
-                                   make_float3(lzx, lzy, lzz));
+    scene.getCamera()->setLocalSpace(make_float3(lxx, lxy, lxz),
+                                     make_float3(lyx, lyy, lyz),
+                                     make_float3(lzx, lzy, lzz));
 }
 void rotateCameraAround(float angle, float x, float y, float z)
 {
-  scene.getCamera()->rotateAround(angle,  make_float3(x,y,z));
+    scene.getCamera()->rotateAround(angle,  make_float3(x,y,z));
 }
 void rotateCameraLocallyAround(float angle, float x, float y, float z)
 {
-  scene.getCamera()->rotateLocallyAround(angle,  make_float3(x,y,z));
+    scene.getCamera()->rotateLocallyAround(angle,  make_float3(x,y,z));
 }
 void rotateCamerasAround(float angle, float x, float y, float z)
 {
-  size_t cc = scene.getCameraCount();
-  for (size_t i = 0; i < cc; ++i) {
-    scene.getCamera()->rotateAround(angle,  make_float3(x,y,z));
-    scene.nextCamera();
-  }
+    size_t cc = scene.getCameraCount();
+    for (size_t i = 0; i < cc; ++i) {
+        scene.getCamera()->rotateAround(angle,  make_float3(x,y,z));
+        scene.nextCamera();
+    }
 }
 void rotateCamerasLocallyAround(float angle, float x, float y, float z)
 {
-  size_t cc = scene.getCameraCount();
-  for (size_t i = 0; i < cc; ++i) {
-    scene.getCamera()->rotateLocallyAround(angle,  make_float3(x,y,z));
-    scene.nextCamera();
-  }
+    size_t cc = scene.getCameraCount();
+    for (size_t i = 0; i < cc; ++i) {
+        scene.getCamera()->rotateLocallyAround(angle,  make_float3(x,y,z));
+        scene.nextCamera();
+    }
 }
 void translateCamera(float x, float y, float z)
 {
-  scene.getCamera()->move(make_float3(x, y, z));
+    scene.getCamera()->move(make_float3(x, y, z));
 }
 void translateCameraLocally(float x, float y, float z)
 {
-  scene.getCamera()->moveLocally(make_float3(x, y, z));
+    scene.getCamera()->moveLocally(make_float3(x, y, z));
 }
 void translateCamerasLocally(float x, float y, float z)
 {
-  // For each camera in scene:
-  size_t cc = scene.getCameraCount();
-  for (size_t i = 0; i < cc; ++i) {
-    scene.getCamera()->moveLocally(make_float3(x, y, z));
-    scene.nextCamera();
-  } // at end should have looped back to original cam
+    // For each camera in scene:
+    size_t cc = scene.getCameraCount();
+    for (size_t i = 0; i < cc; ++i) {
+        scene.getCamera()->moveLocally(make_float3(x, y, z));
+        scene.nextCamera();
+    } // at end should have looped back to original cam
 }
 void resetCameraPose()
 {
-  scene.getCamera()->resetPose();
+    scene.getCamera()->resetPose();
 }
 void setCameraPose(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
 {
-  GenericCamera* c = scene.getCamera();
-  c->resetPose();
-  c->rotateAround(rotX, make_float3(1,0,0));
-  c->rotateAround(rotY, make_float3(0,1,0));
-  c->rotateAround(rotZ, make_float3(0,0,1));
-  c->move(make_float3(posX, posY, posZ));
+    GenericCamera* c = scene.getCamera();
+    c->resetPose();
+    c->rotateAround(rotX, make_float3(1,0,0));
+    c->rotateAround(rotY, make_float3(0,1,0));
+    c->rotateAround(rotZ, make_float3(0,0,1));
+    c->move(make_float3(posX, posY, posZ));
 }
 
 void getCameraData (std::vector<std::array<float, 3>>& cameraData)
 {
-  if (isCompoundEyeActive() == true) {
+    if (isCompoundEyeActive() == true) {
 
-    if constexpr (sum_average_with_getCameraData == true) {
-      // Alternative place to do the sample summing. Useful here, so that you can time
-      // getCameraData() to work out how much time is taken to sum and transfer data to CPU
-      ((CompoundEye*)scene.getCamera())->averageRecordFrame();
+        if constexpr (sum_average_with_getCameraData == true) {
+            // Alternative place to do the sample summing. Useful here, so that you can time
+            // getCameraData() to work out how much time is taken to sum and transfer data to CPU
+            ((CompoundEye*)scene.getCamera())->averageRecordFrame();
+        }
+        size_t omcount = ((CompoundEye*)scene.getCamera())->getOmmatidialCount();
+        cameraData.resize (omcount);
+        float3* _data = ((CompoundEye*)scene.getCamera())->getRecordFrame();
+        for (size_t i = 0; i < omcount; ++i) {
+            // copy _data[i] to cameraData[i] applying gamma correction
+            // 1/2.2 = 0.45454545
+            //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
+            cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
+        }
+    } else {
+        throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
     }
-    size_t omcount = ((CompoundEye*)scene.getCamera())->getOmmatidialCount();
-    cameraData.resize (omcount);
-    float3* _data = ((CompoundEye*)scene.getCamera())->getRecordFrame();
-    for (size_t i = 0; i < omcount; ++i) {
-      // copy _data[i] to cameraData[i] applying gamma correction
-      // 1/2.2 = 0.45454545
-      //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
-      cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
-    }
-  } else {
-    throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
-  }
 }
 
 //------------------------------------------------------------------------------
@@ -467,91 +467,91 @@ void getCameraData (std::vector<std::array<float, 3>>& cameraData)
 //------------------------------------------------------------------------------
 bool isCompoundEyeActive(void)
 {
-  return scene.isCompoundEyeActive();
+    return scene.isCompoundEyeActive();
 }
 
 std::string getEyeDataPath()
 {
-  if (scene.isCompoundEyeActive()) { return scene.eye_data_path; }
-  return std::string("");
+    if (scene.isCompoundEyeActive()) { return scene.eye_data_path; }
+    return std::string("");
 }
 
 void setCurrentEyeSamplesPerOmmatidium(int s)
 {
-  if(scene.isCompoundEyeActive())
-  {
-    ((CompoundEye*)scene.getCamera())->setSamplesPerOmmatidium(s);
-  }
+    if(scene.isCompoundEyeActive())
+    {
+        ((CompoundEye*)scene.getCamera())->setSamplesPerOmmatidium(s);
+    }
 }
 int getCurrentEyeSamplesPerOmmatidium(void)
 {
-  if(scene.isCompoundEyeActive())
-  {
-    return(((CompoundEye*)scene.getCamera())->getSamplesPerOmmatidium());
-  }
-  return -1;
+    if(scene.isCompoundEyeActive())
+    {
+        return(((CompoundEye*)scene.getCamera())->getSamplesPerOmmatidium());
+    }
+    return -1;
 }
 void changeCurrentEyeSamplesPerOmmatidiumBy(int s)
 {
-  if(scene.isCompoundEyeActive())
-  {
-    ((CompoundEye*)scene.getCamera())->changeSamplesPerOmmatidiumBy(s);
-  }
+    if(scene.isCompoundEyeActive())
+    {
+        ((CompoundEye*)scene.getCamera())->changeSamplesPerOmmatidiumBy(s);
+    }
 }
 size_t getCurrentEyeOmmatidialCount(void)
 {
-  if(scene.isCompoundEyeActive())
-  {
-    return ((CompoundEye*)scene.getCamera())->getOmmatidialCount();
-  }
-  return 0;
+    if(scene.isCompoundEyeActive())
+    {
+        return ((CompoundEye*)scene.getCamera())->getOmmatidialCount();
+    }
+    return 0;
 }
 void setOmmatidia(OmmatidiumPacket* omms, size_t count)
 {
-  // Break out if the current eye isn't compound
-  if(!scene.isCompoundEyeActive())
-    return;
+    // Break out if the current eye isn't compound
+    if(!scene.isCompoundEyeActive())
+        return;
 
-  // First convert the OmmatidiumPacket list into an array of Ommatidium objects
-  std::vector<Ommatidium> ommVector(count);
-  for(size_t i = 0; i<count; i++)
-  {
-    OmmatidiumPacket& omm = omms[i];
-    ommVector[i].relativePosition  = make_float3(omm.posX, omm.posY, omm.posZ);
-    ommVector[i].relativeDirection = make_float3(omm.dirX, omm.dirY, omm.dirZ);
-    ommVector[i].acceptanceAngleRadians = omm.acceptanceAngle;
-    ommVector[i].focalPointOffset = omm.focalpointOffset;
-  }
+    // First convert the OmmatidiumPacket list into an array of Ommatidium objects
+    std::vector<Ommatidium> ommVector(count);
+    for(size_t i = 0; i<count; i++)
+    {
+        OmmatidiumPacket& omm = omms[i];
+        ommVector[i].relativePosition  = make_float3(omm.posX, omm.posY, omm.posZ);
+        ommVector[i].relativeDirection = make_float3(omm.dirX, omm.dirY, omm.dirZ);
+        ommVector[i].acceptanceAngleRadians = omm.acceptanceAngle;
+        ommVector[i].focalPointOffset = omm.focalpointOffset;
+    }
 
-  // Actually set the new ommatidial structure
-  ((CompoundEye*)scene.getCamera())->setOmmatidia(ommVector.data(), count);
+    // Actually set the new ommatidial structure
+    ((CompoundEye*)scene.getCamera())->setOmmatidia(ommVector.data(), count);
 }
 const char* getCurrentEyeDataPath(void)
 {
-  if(scene.isCompoundEyeActive())
-  {
-    return ((CompoundEye*)scene.getCamera())->eyeDataPath.c_str();
-  }
-  return "\0";
+    if(scene.isCompoundEyeActive())
+    {
+        return ((CompoundEye*)scene.getCamera())->eyeDataPath.c_str();
+    }
+    return "\0";
 }
 void setCurrentEyeShaderName(char* name)
 {
-  if(scene.isCompoundEyeActive())
-  {
-    ((CompoundEye*)scene.getCamera())->setShaderName(std::string(name)); // Set the shader
-    scene.reconfigureSBTforCurrentCamera(true); // Reconfigure for the new shader
-  }
+    if(scene.isCompoundEyeActive())
+    {
+        ((CompoundEye*)scene.getCamera())->setShaderName(std::string(name)); // Set the shader
+        scene.reconfigureSBTforCurrentCamera(true); // Reconfigure for the new shader
+    }
 }
 
 bool isInsideHitGeometry(float x, float y, float z, char* name)
 {
-  return scene.isInsideHitGeometry(make_float3(x, y, z), std::string(name), false);//notificationsActive);
+    return scene.isInsideHitGeometry(make_float3(x, y, z), std::string(name), false);//notificationsActive);
 }
 float3 getGeometryMaxBounds(char* name)
 {
-  return scene.getGeometryMaxBounds(std::string(name));
+    return scene.getGeometryMaxBounds(std::string(name));
 }
 float3 getGeometryMinBounds(char* name)
 {
-  return scene.getGeometryMinBounds(std::string(name));
+    return scene.getGeometryMinBounds(std::string(name));
 }
