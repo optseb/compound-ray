@@ -234,7 +234,7 @@ void initGL()
     int glad_gl_version = gladLoadGL();
     if( !glad_gl_version ) { throw Exception( "Failed to initialize GL" ); }
 
-    printf("sutil/initGL: Loaded OpenGL glad_gl_version = %d\n", glad_gl_version);
+    if constexpr (debug_sutil) { printf("sutil/initGL: Loaded OpenGL glad_gl_version = %d\n", glad_gl_version); }
 
     GL_CHECK( glClearColor( 0.212f, 0.271f, 0.31f, 1.0f ) );
     GL_CHECK( glClear( GL_COLOR_BUFFER_BIT ) );

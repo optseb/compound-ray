@@ -63,6 +63,8 @@
 cmake_minimum_required(VERSION 3.5.0 FATAL_ERROR)
 cmake_policy(VERSION 3.5)
 
+set(CMAKE_CXX_STANDARD 17)
+
 # This sets up the name of our project.  For our purposes the main thing this controls is
 # the name of the VS solution file.
 project(Eye-Renderer-Three)

@@ -50,6 +50,8 @@ struct GLFWwindow;
 namespace sutil
 {
 
+static constexpr bool debug_sutil = false;
+
 enum BufferImageFormat
 {
     UNSIGNED_BYTE4,
