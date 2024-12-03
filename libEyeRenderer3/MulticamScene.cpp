@@ -62,9 +62,8 @@
 
 namespace
 {
-
-// Compile time debugging choices
-    static constexpr bool debug_gltf = false;
+    // Compile time debugging choices
+    static constexpr bool debug_gltf = true;
     static constexpr bool debug_cameras = false;
     static constexpr bool debug_pipeline = false;
 
@@ -89,8 +88,7 @@ namespace
     template<typename T>
     BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, MulticamScene& scene, const int32_t accessor_idx )
     {
-        if( accessor_idx == -1 )
-            return BufferView<T>();
+        if (accessor_idx == -1) { return BufferView<T>(); }
 
         const auto& gltf_accessor    = model.accessors[ accessor_idx ];
         const auto& gltf_buffer_view = model.bufferViews[ gltf_accessor.bufferView ];
@@ -100,16 +98,15 @@ namespace
         gltf_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT   ? 4 :
         gltf_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT          ? 4 :
         0;
-        if( !elmt_byte_size )
-            throw Exception( "gltf accessor component type not supported" );
+        if (!elmt_byte_size) { throw Exception( "gltf accessor component type not supported" ); }
 
-        const CUdeviceptr buffer_base = scene.getBuffer( gltf_buffer_view.buffer );
+        const CUdeviceptr buffer_base = scene.getBuffer (gltf_buffer_view.buffer);
+
         BufferView<T> buffer_view;
         buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset;
         buffer_view.byte_stride    = static_cast<uint16_t>( gltf_buffer_view.byteStride );
         buffer_view.count          = static_cast<uint32_t>( gltf_accessor.count );
         buffer_view.elmt_byte_size = static_cast<uint16_t>( elmt_byte_size );
-
         return buffer_view;
     }
 
@@ -391,8 +388,10 @@ namespace
                 auto mesh = std::make_shared<MulticamScene::MeshGroup>();
 
                 // Add the mesh to the mesh list
-                scene.addMesh(mesh);
-
+                int m_idx = scene.addMesh (mesh);
+                if constexpr (debug_gltf == true) {
+                    std::cout << "\tThis is m_meshes index " << m_idx << std::endl;
+                }
 
                 mesh->name = gltf_mesh.name;
                 mesh->indices.push_back( bufferViewFromGLTF<uint32_t>( model, scene, gltf_primitive.indices ) );
@@ -404,6 +403,9 @@ namespace
                 assert( gltf_primitive.attributes.find( "POSITION" ) !=  gltf_primitive.attributes.end() );
                 const int32_t pos_accessor_idx =  gltf_primitive.attributes.at( "POSITION" );
                 mesh->positions.push_back( bufferViewFromGLTF<float3>( model, scene, pos_accessor_idx ) );
+                if constexpr (debug_gltf == true) {
+                    std::cerr << "\t\tNum vertices(positions): " << mesh->positions.back().count / 3 << std::endl;
+                }
 
                 const auto& pos_gltf_accessor = model.accessors[ pos_accessor_idx ];
                 mesh->object_aabb = Aabb(
@@ -478,7 +480,7 @@ namespace
                         {
                         case TINYGLTF_COMPONENT_TYPE_FLOAT:
                             if constexpr (debug_gltf == true) {
-                                std::cerr << "\t\t\tComponent type is float.\n";
+                                std::cerr << "\t\t\tColour vec4 component type is float.\n";
                             }
                             mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, vertex_colours_accessor_iter->second ) );
 
@@ -489,7 +491,7 @@ namespace
                             break;
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
                             if constexpr (debug_gltf == true) {
-                                std::cerr << "\t\t\tComponent type is unsigned short.\n";
+                                std::cerr << "\t\t\tColour vec4 component type is unsigned short.\n";
                             }
                             mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, vertex_colours_accessor_iter->second ) );
 
@@ -500,7 +502,7 @@ namespace
                             break;
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
                             if constexpr (debug_gltf == true) {
-                                std::cerr << "\t\t\tComponent type is unsigned byte.\n";
+                                std::cerr << "\t\t\tColour vec4 component type is unsigned byte.\n";
                             }
                             mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, vertex_colours_accessor_iter->second ) );
 
@@ -511,7 +513,7 @@ namespace
                             break;
                         default:
                             if constexpr (debug_gltf == true) {
-                                std::cerr << "\t\t\tComponent type is not supported.\n";
+                                std::cerr << "\t\t\tColour vec4 component type is not supported.\n";
                             }
                             // We must populate the other buffers so that indices align
                             mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
@@ -526,7 +528,7 @@ namespace
                             mesh->host_color_container = 4;
                         }
                         if (mesh->host_color_container != 4) {
-                            std::cerr << "\t\t\tBAD color container size!.\n";
+                            std::cerr << "\t\t\tBAD vec4 colour container size!.\n";
                         }
                     }
                     else if (vertex_colours_gltf_accessor.type == TINYGLTF_TYPE_VEC3)
@@ -547,7 +549,7 @@ namespace
                         {
                         case TINYGLTF_COMPONENT_TYPE_FLOAT:
                             if constexpr (debug_gltf == true) {
-                                std::cerr << "\t\t\tComponent type is float.\n";
+                                std::cerr << "\t\t\tColour vec3 component type is float.\n";
                             }
                             mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, vertex_colours_accessor_iter->second ) );
 
@@ -559,7 +561,7 @@ namespace
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
                         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
                         default:
-                            std::cerr << "\t\t\tThis component type is not supported.\n";
+                            std::cerr << "\t\t\tThis vec3 component type is not supported.\n";
                             // We must populate the other buffers so that indices align
                             mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
                             mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
@@ -573,7 +575,7 @@ namespace
                             mesh->host_color_container = 3;
                         }
                         if (mesh->host_color_container != 3) {
-                            std::cerr << "\t\t\tBAD color container size!.\n";
+                            std::cerr << "\t\t\tBAD vec3 colour container size!.\n";
                         }
                     }
                     else
@@ -1277,28 +1279,19 @@ void MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
 
         for(size_t i = 0; i < num_subMeshes; ++i)
         {
-            OptixBuildInput& triangle_input                          = buildInputs[i];
+            OptixBuildInput& triangle_input                      = buildInputs[i];
             memset(&triangle_input, 0, sizeof(OptixBuildInput));
-            triangle_input.type                                      = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-            triangle_input.triangleArray.vertexFormat                = OPTIX_VERTEX_FORMAT_FLOAT3;
-            triangle_input.triangleArray.vertexStrideInBytes         =
-            mesh->positions[i].byte_stride ?
-            mesh->positions[i].byte_stride :
-            sizeof(float3),
+            triangle_input.type                                  = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+            triangle_input.triangleArray.vertexFormat            = OPTIX_VERTEX_FORMAT_FLOAT3;
+            triangle_input.triangleArray.vertexStrideInBytes     = mesh->positions[i].byte_stride ? mesh->positions[i].byte_stride : sizeof(float3),
             triangle_input.triangleArray.numVertices             = mesh->positions[i].count;
-            triangle_input.triangleArray.vertexBuffers               = &(mesh->positions[i].data);
-            triangle_input.triangleArray.indexFormat                 =
-            mesh->indices[i].elmt_byte_size == 2 ?
-            OPTIX_INDICES_FORMAT_UNSIGNED_SHORT3 :
-            OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
-            triangle_input.triangleArray.indexStrideInBytes          =
-            mesh->indices[i].byte_stride ?
-            mesh->indices[i].byte_stride :
-            mesh->indices[i].elmt_byte_size*3;
-            triangle_input.triangleArray.numIndexTriplets            = mesh->indices[i].count / 3;
-            triangle_input.triangleArray.indexBuffer                 = mesh->indices[i].data;
-            triangle_input.triangleArray.flags                       = &triangle_input_flags;
-            triangle_input.triangleArray.numSbtRecords               = 1;
+            triangle_input.triangleArray.vertexBuffers           = &(mesh->positions[i].data);
+            triangle_input.triangleArray.indexFormat             = mesh->indices[i].elmt_byte_size == 2 ? OPTIX_INDICES_FORMAT_UNSIGNED_SHORT3 : OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+            triangle_input.triangleArray.indexStrideInBytes      = mesh->indices[i].byte_stride ? mesh->indices[i].byte_stride : mesh->indices[i].elmt_byte_size*3;
+            triangle_input.triangleArray.numIndexTriplets        = mesh->indices[i].count / 3;
+            triangle_input.triangleArray.indexBuffer             = mesh->indices[i].data;
+            triangle_input.triangleArray.flags                   = &triangle_input_flags;
+            triangle_input.triangleArray.numSbtRecords           = 1;
         }
 
         OptixAccelBufferSizes gas_buffer_sizes;

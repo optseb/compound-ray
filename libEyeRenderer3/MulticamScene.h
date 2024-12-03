@@ -119,11 +119,21 @@ public:
 
     ~MulticamScene();// Destructor
 
+    // Obtain access to a mesh of positions (to scan over a landscape)
+    const std::vector<BufferView<float3> >* getMeshPositions (size_t idx)
+    {
+        if (idx >= this->m_meshes.size()) { return nullptr; }
+        return &this->m_meshes[idx]->positions;
+    }
+
     // Return index of the added camera
     int addCamera  ( GenericCamera* cameraPtr  );
     // Returns the position of the compound camera in the array for later reference
     uint32_t addCompoundCamera  (int camera_index, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec);
-    void addMesh    ( std::shared_ptr<MeshGroup> mesh )    { m_meshes.push_back( mesh );       }
+    uint32_t addMesh    ( std::shared_ptr<MeshGroup> mesh )    {
+        m_meshes.push_back( mesh );
+        return (this->m_meshes.size() - 1u);
+    }
     void addMaterial( const MaterialData::Pbr& mtl    )    { m_materials.push_back( mtl );     }
     void addBuffer  ( const uint64_t buf_size, const void* data );
     void addImage(
