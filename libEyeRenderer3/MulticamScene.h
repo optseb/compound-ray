@@ -125,6 +125,11 @@ public:
         if (idx >= this->m_meshes.size()) { return nullptr; }
         return &this->m_meshes[idx]->positions;
     }
+    const std::vector<BufferView<float3> >* getMeshNormals (size_t idx)
+    {
+        if (idx >= this->m_meshes.size()) { return nullptr; }
+        return &this->m_meshes[idx]->normals;
+    }
 
     // Return index of the added camera
     int addCamera  ( GenericCamera* cameraPtr  );
