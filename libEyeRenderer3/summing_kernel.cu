@@ -83,7 +83,7 @@ __global__ void reduceit_arrays (float3* in, float3* out, int n_arrays, int n_el
     // This gives a memory offset to get to the right part of the input memory
     int thread_offset = omm_id * n_elements;
     // For array index checking
-    int data_sz = n_arrays * n_elements;
+    // int data_sz = n_arrays * n_elements;
 
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < n_elements && omm_id < n_arrays;
