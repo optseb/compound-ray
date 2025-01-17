@@ -95,7 +95,7 @@ namespace
         if (accessor_idx == -1) { return BufferView<T>(); }
 
         const auto& gltf_accessor    = model.accessors[ accessor_idx ];
-        std::cout << "For accessor_idx " << accessor_idx << " model.accessors [" << accessor_idx << "].bufferView = " << gltf_accessor.bufferView << std::endl;
+        //std::cout << "For accessor_idx " << accessor_idx << " model.accessors [" << accessor_idx << "].bufferView = " << gltf_accessor.bufferView << std::endl;
         const auto& gltf_buffer_view = model.bufferViews[ gltf_accessor.bufferView ];
 
         const int32_t elmt_byte_size =
