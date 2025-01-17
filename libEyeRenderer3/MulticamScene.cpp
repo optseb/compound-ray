@@ -85,12 +85,17 @@ namespace
                   << message << "\n";
     }
 
+    /*
+     * This function obtains the *entire* glTF BufferView that is associated with the glTF
+     * accessor with index accessor_idx.
+     */
     template<typename T>
     BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, MulticamScene& scene, const int32_t accessor_idx )
     {
         if (accessor_idx == -1) { return BufferView<T>(); }
 
         const auto& gltf_accessor    = model.accessors[ accessor_idx ];
+        std::cout << "For accessor_idx " << accessor_idx << " model.accessors [" << accessor_idx << "].bufferView = " << gltf_accessor.bufferView << std::endl;
         const auto& gltf_buffer_view = model.bufferViews[ gltf_accessor.bufferView ];
 
         const int32_t elmt_byte_size =
@@ -103,9 +108,20 @@ namespace
         const CUdeviceptr buffer_base = scene.getBuffer (gltf_buffer_view.buffer);
 
         BufferView<T> buffer_view;
+#ifdef ___ACCESS_ONLY_ACCESSOR_COUNT_PORTION_OF_BUFFERVIEW
         buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset;
+#else // If we made up the count, we'd have to ignore the gltf_accessor.byteOffset:
+        buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset;
+#endif
+
         buffer_view.byte_stride    = static_cast<uint16_t>( gltf_buffer_view.byteStride );
-        buffer_view.count          = static_cast<uint32_t>( gltf_accessor.count );
+
+#ifdef ___ACCESS_ONLY_ACCESSOR_COUNT_PORTION_OF_BUFFERVIEW
+        buffer_view.count          = static_cast<uint32_t>( gltf_accessor.count ); // THIS limits size of buffer_view to be the size of the accessor
+#else
+        // This sets the buffer_view count to be the total number of elements in the glTF buffer view
+        buffer_view.count          = static_cast<uint32_t>( gltf_buffer_view.byteLength / elmt_byte_size );
+#endif
         buffer_view.elmt_byte_size = static_cast<uint16_t>( elmt_byte_size );
         return buffer_view;
     }
