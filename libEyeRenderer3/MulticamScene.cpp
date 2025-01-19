@@ -94,35 +94,20 @@ namespace
     {
         if (accessor_idx == -1) { return BufferView<T>(); }
 
-        const auto& gltf_accessor    = model.accessors[ accessor_idx ];
-        //std::cout << "For accessor_idx " << accessor_idx << " model.accessors [" << accessor_idx << "].bufferView = " << gltf_accessor.bufferView << std::endl;
-        const auto& gltf_buffer_view = model.bufferViews[ gltf_accessor.bufferView ];
+        const tinygltf::Accessor& gltf_accessor      = model.accessors[ accessor_idx ];
+        const tinygltf::BufferView& gltf_buffer_view = model.bufferViews[ gltf_accessor.bufferView ];
 
-        const int32_t elmt_byte_size =
-        gltf_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT ? 2 :
-        gltf_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT   ? 4 :
-        gltf_accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT          ? 4 :
-        0;
-        if (!elmt_byte_size) { throw Exception( "gltf accessor component type not supported" ); }
+        const int32_t elmt_byte_size = tinygltf::GetComponentSizeInBytes (gltf_accessor.componentType);
+        const int32_t cmpts_in_type = tinygltf::GetNumComponentsInType (gltf_accessor.type);
+        if (cmpts_in_type == -1 || elmt_byte_size == -1) { throw Exception( "gltf accessor not supported" ); }
 
         const CUdeviceptr buffer_base = scene.getBuffer (gltf_buffer_view.buffer);
-
         BufferView<T> buffer_view;
-#ifdef ___ACCESS_ONLY_ACCESSOR_COUNT_PORTION_OF_BUFFERVIEW
         buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset;
-#else // If we made up the count, we'd have to ignore the gltf_accessor.byteOffset:
-        buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset;
-#endif
+        buffer_view.byte_stride    = static_cast<uint16_t>(gltf_buffer_view.byteStride);
+        buffer_view.count          = static_cast<uint32_t>(gltf_accessor.count * cmpts_in_type);
+        buffer_view.elmt_byte_size = static_cast<uint16_t>(elmt_byte_size);
 
-        buffer_view.byte_stride    = static_cast<uint16_t>( gltf_buffer_view.byteStride );
-
-#ifdef ___ACCESS_ONLY_ACCESSOR_COUNT_PORTION_OF_BUFFERVIEW
-        buffer_view.count          = static_cast<uint32_t>( gltf_accessor.count ); // THIS limits size of buffer_view to be the size of the accessor
-#else
-        // This sets the buffer_view count to be the total number of elements in the glTF buffer view
-        buffer_view.count          = static_cast<uint32_t>( gltf_buffer_view.byteLength / elmt_byte_size );
-#endif
-        buffer_view.elmt_byte_size = static_cast<uint16_t>( elmt_byte_size );
         return buffer_view;
     }
 
