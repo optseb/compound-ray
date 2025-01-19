@@ -111,26 +111,6 @@ namespace
         return buffer_view;
     }
 
-//template<typename T>
-//BufferView<T> bufferViewFromGLTF2( const tinygltf::Model& model, MulticamScene& scene, const int32_t accessor_idx)
-//{
-//    if( accessor_idx == -1 )
-//        return BufferView<T>();
-//
-//    const auto& gltf_accessor    = model.accessors[ accessor_idx ];
-//    const auto& gltf_buffer_view = model.bufferViews[ gltf_accessor.bufferView ];
-//
-//    const CUdeviceptr buffer_base = scene.getBuffer( gltf_buffer_view.buffer );
-//    BufferView<T> buffer_view;
-//    buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset;
-//    std::cerr << "\t\t\t Byte Stride: " << gltf_buffer_view.byteStride << std::endl;
-//    buffer_view.byte_stride    = static_cast<uint16_t>( gltf_buffer_view.byteStride );
-//    buffer_view.count          = static_cast<uint32_t>( gltf_accessor.count );
-//    buffer_view.elmt_byte_size = static_cast<uint16_t>( 4 );
-//
-//    return buffer_view;
-//}
-
     const bool isObjectsExtraValueTrue (const tinygltf::Value& extras, const char* key)
     {
         tinygltf::Value v = extras.Get(key);
