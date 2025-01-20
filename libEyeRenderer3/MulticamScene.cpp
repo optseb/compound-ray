@@ -103,6 +103,7 @@ namespace
         const int32_t elmt_byte_size = tinygltf::GetComponentSizeInBytes(gltf_accessor.componentType);
         const int32_t cmpts_in_type  = tinygltf::GetNumComponentsInType(gltf_accessor.type);
         if (cmpts_in_type == -1 || elmt_byte_size == -1) { throw Exception ("gltf accessor not supported"); }
+        if ((cmpts_in_type * elmt_byte_size) > sizeof(T)) { throw Exception ("bufferViewFromGLTF: sizeof(T) < accessor data type size"); }
 
         const CUdeviceptr buffer_base = scene.getBuffer (gltf_buffer_view.buffer);
         BufferView<T> buffer_view;
