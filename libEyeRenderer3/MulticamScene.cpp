@@ -86,20 +86,23 @@ namespace
     }
 
     /*
-     * This function obtains the *entire* glTF BufferView that is associated with the glTF
-     * accessor with index accessor_idx.
+     * This function obtains a CUDA BufferView of the data that is associated with the glTF accessor
+     * in @model with index @accessor_idx. The glTF accessor provides access to/additional metadata
+     * about memory described by a glTF BufferView (which should not be confused with the CUDA
+     * BufferView object returned by this function). @scene provides access to the buffer of data
+     * that underlies the BufferViews.
      */
     template<typename T>
-    BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, MulticamScene& scene, const int32_t accessor_idx )
+    BufferView<T> bufferViewFromGLTF(const tinygltf::Model& model, MulticamScene& scene, const int32_t accessor_idx)
     {
         if (accessor_idx == -1) { return BufferView<T>(); }
 
-        const tinygltf::Accessor& gltf_accessor      = model.accessors[ accessor_idx ];
-        const tinygltf::BufferView& gltf_buffer_view = model.bufferViews[ gltf_accessor.bufferView ];
+        const tinygltf::Accessor& gltf_accessor      = model.accessors[accessor_idx];
+        const tinygltf::BufferView& gltf_buffer_view = model.bufferViews[gltf_accessor.bufferView];
 
-        const int32_t elmt_byte_size = tinygltf::GetComponentSizeInBytes (gltf_accessor.componentType);
-        const int32_t cmpts_in_type = tinygltf::GetNumComponentsInType (gltf_accessor.type);
-        if (cmpts_in_type == -1 || elmt_byte_size == -1) { throw Exception( "gltf accessor not supported" ); }
+        const int32_t elmt_byte_size = tinygltf::GetComponentSizeInBytes(gltf_accessor.componentType);
+        const int32_t cmpts_in_type  = tinygltf::GetNumComponentsInType(gltf_accessor.type);
+        if (cmpts_in_type == -1 || elmt_byte_size == -1) { throw Exception ("gltf accessor not supported"); }
 
         const CUdeviceptr buffer_base = scene.getBuffer (gltf_buffer_view.buffer);
         BufferView<T> buffer_view;
