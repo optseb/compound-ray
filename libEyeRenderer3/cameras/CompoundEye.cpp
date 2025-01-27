@@ -154,7 +154,7 @@ void CompoundEye::freeOmmatidialRandomStates()
     if constexpr (debug_memory == true) {
         std::cout << "[CAMERA: " << getCameraName() << "] Freeing ommatidial random states... ";
     }
-    if(specializedData.d_ommatidialArray != 0)
+    if(specializedData.d_randomStates != 0)
     {
         CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_randomStates)) );
         specializedData.d_randomStates = 0;
