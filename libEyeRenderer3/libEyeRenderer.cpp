@@ -80,10 +80,12 @@
 #endif
 
 // By default, call the summing kernel within launchFrame so that it will always
-// happen. It's potentially useful to call the summing kernel from inside getCameraData
-// to profile its execution (seems to take 5 ms for summing/data transfer at 2048
-// samples, dropping to 2 ms for 1024 samples on my i9/4080).
+// happen (sum_average_with_getCameraData = false).
 //
+// It's potentially useful to call the summing kernel from inside getCameraData
+// (sum_average_with_getCameraData = true) to profile its execution (seems to take 5 ms
+// for summing/data transfer at 2048 samples, dropping to 2 ms for 1024 samples on my
+// i9/4080).
 static constexpr bool sum_average_with_getCameraData = false;
 
 MulticamScene scene;
@@ -455,8 +457,14 @@ void getCameraData (std::vector<std::array<float, 3>>& cameraData)
             // copy _data[i] to cameraData[i] applying gamma correction
             // 1/2.2 = 0.45454545
             //cameraData[i] = { powf(_data[i].x, 1.0f/2.2f), powf(_data[i].y, 1.0f/2.2f), powf(_data[i].z, 1.0f/2.2f) };
-            cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
+            // Check for nans while running; somewhere in the averaging code, we sometimes obtain a NaN
+            if (std::isnan(_data[i].x)) { // Only need to check one element for NaN
+                cameraData[i] = { 0.0f, 0.0f, 0.0f };
+            } else {
+                cameraData[i] = { _data[i].x, _data[i].y, _data[i].z };
+            }
         }
+
     } else {
         throw std::runtime_error ("Currently, getCameraData is implemented only for compound eye cameras");
     }
