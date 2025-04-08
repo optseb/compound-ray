@@ -40,51 +40,36 @@ namespace globalParameters
 
 const uint32_t NUM_PAYLOAD_VALUES = 4u;
 
-
-struct HitGroupData
-{
+struct HitGroupData {
     GeometryData geometry_data;
     MaterialData material_data;
 };
 
+enum RayType { RAY_TYPE_RADIANCE = 0, RAY_TYPE_OCCLUSION = 1, RAY_TYPE_COUNT = 2 };
 
-enum RayType
-{
-    RAY_TYPE_RADIANCE  = 0,
-    RAY_TYPE_OCCLUSION = 1,
-    RAY_TYPE_COUNT = 2
-};
+struct LaunchParams {
+    uchar4* frame_buffer;
+    int32_t max_depth;
 
+    CUdeviceptr compoundBufferPtr; // Pointer to an on-device buffer for compound eye handling
+    uint32_t compoundBufferWidth;
+    uint32_t compoundBufferHeight;
+    uint32_t compoundBufferDepth;
+    uint32_t frame; // The current frame
 
-struct LaunchParams
-{
-    uchar4*                  frame_buffer;
-    int32_t                  max_depth;
-
-    CUdeviceptr              compoundBufferPtr;// Pointer to an on-device buffer for compound eye handling
-    uint32_t                 compoundBufferWidth;
-    uint32_t                 compoundBufferHeight;
-    uint32_t                 compoundBufferDepth;
-    uint32_t                 frame;// The current frame
-
-    bool                     lighting;
+    bool lighting;
     BufferView<Light::Point> lights;
-    float3                   miss_color;
-    OptixTraversableHandle   handle;
+    float3 miss_color;
+    OptixTraversableHandle handle;
 };
 
-
-struct PayloadRadiance
-{
+struct PayloadRadiance {
     float3 result;
-    float  importance;
-    int    depth;
+    float importance;
+    int depth;
 };
 
-
-struct PayloadOcclusion
-{
+struct PayloadOcclusion {
 };
 
-
-} // end namespace whitted
+} // namespace globalParameters

@@ -10,7 +10,8 @@
 
 #include "CompoundEyeDataTypes.h"
 
-class CompoundEye : public DataRecordCamera<CompoundEyeData> {
+class CompoundEye : public DataRecordCamera<CompoundEyeData>
+{
   public:
     static void InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, OptixProgramGroup& compoundProgramGroup, const CUdeviceptr& targetRecord);
     static void FreeCompoundRecord();
@@ -19,19 +20,35 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
     CompoundEye(const std::string name, const std::string shaderName, size_t ommatidialCount, const std::string& eyeDataPath);
     ~CompoundEye();
 
-    const char* getEntryFunctionName() const { return shaderName.c_str(); }
+    const char*
+    getEntryFunctionName() const
+    {
+        return shaderName.c_str();
+    }
 
     void setOmmatidia(Ommatidium* ommatidia, size_t count); // Copies in the ommatidial list, resetting and reallocating all affected memory if count differs from the current ommatidial count
-    void copyOmmatidia(Ommatidium* ommatidia); // Copies in the ommatidial list given, to the length of the current number of ommatidia in the eye
-    const size_t getOmmatidialCount() const { return specializedData.ommatidialCount; }
+    void copyOmmatidia(Ommatidium* ommatidia);              // Copies in the ommatidial list given, to the length of the current number of ommatidia in the eye
+    const size_t
+    getOmmatidialCount() const
+    {
+        return specializedData.ommatidialCount;
+    }
 
-    const uint32_t getSamplesPerOmmatidium() const { return specializedData.samplesPerOmmatidium; }
+    const uint32_t
+    getSamplesPerOmmatidium() const
+    {
+        return specializedData.samplesPerOmmatidium;
+    }
     void setSamplesPerOmmatidium(int32_t s);
     void changeSamplesPerOmmatidiumBy(int32_t d);
     void setShaderName(const std::string shaderName);
 
     // Sets this eye's randomsConfigured to true. TODO(RANDOMS): Will not be required when randoms are ensured configured on creation. Literally only used in libEyeRenderer's renderFrame function:
-    void setRandomsAsConfigured() { specializedData.randomsConfigured = true; } 
+    void
+    setRandomsAsConfigured()
+    {
+        specializedData.randomsConfigured = true;
+    }
 
     std::string eyeDataPath; // A string containing the path to the eye data (note: easily mutable)
 

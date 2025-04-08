@@ -2,7 +2,7 @@
 
 #pragma once
 
-//#define DEBUG
+// #define DEBUG
 
 #include <optix.h>
 #include <sutil/Quaternion.h>
@@ -10,11 +10,12 @@
 
 #include <iostream>
 
-class GenericCamera {
+class GenericCamera
+{
   public:
     static constexpr const char* DEFAULT_RAYGEN_PROGRAM = "__raygen__pinhole";
 
-    //Constructor/Destructor
+    // Constructor/Destructor
     GenericCamera(const std::string name);
     virtual ~GenericCamera();
 
@@ -41,11 +42,20 @@ class GenericCamera {
     virtual void forcePackAndCopyRecord(OptixProgramGroup& programGroup) = 0;
     // Gets a pointer to the data on the device.
     virtual const CUdeviceptr& getRecordPtr() const = 0;
-    virtual const char* getEntryFunctionName() const { return DEFAULT_RAYGEN_PROGRAM; }
+    virtual const char*
+    getEntryFunctionName() const
+    {
+        return DEFAULT_RAYGEN_PROGRAM;
+    }
 
-    const char* getCameraName() const { return camName.c_str(); }
+    const char*
+    getCameraName() const
+    {
+        return camName.c_str();
+    }
 
     int32_t samplesPerPixel = 1;
+
   private:
     const std::string camName;
 };
