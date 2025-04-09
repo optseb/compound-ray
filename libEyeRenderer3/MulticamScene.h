@@ -45,6 +45,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <limits>
 
 #include "GlobalParameters.h"
 #include "cameras/GenericCameraDataTypes.h"
@@ -73,7 +74,7 @@ using namespace sutil;
 
 class MulticamScene
 {
-  public:
+public:
     struct MeshGroup
     {
         std::string                       name;
@@ -83,10 +84,12 @@ class MulticamScene
         std::vector<BufferView<float3> >  positions;
         std::vector<BufferView<float3> >  normals;
         std::vector<BufferView<float2> >  texcoords;
+        std::vector<BufferView<float3 >>  host_colors_f3;
         std::vector<BufferView<float4 >>  host_colors_f4;
         std::vector<BufferView<ushort4>>  host_colors_us4;
         std::vector<BufferView<uchar4 >>  host_colors_uc4;
         std::vector<int>                  host_color_types; // -1 = doesn't use vertex colours, 5126 = float4, 5123 = ushort4, 5121 = uchar4
+        int                               host_color_container = -1; // -1 for unknown. 3 for vec3 (and use host_colors_f3)  4 for vec4 (use host_colors_f4 or _us4 or _uc4)
 
         std::vector<int32_t>              material_idx;
 
@@ -99,42 +102,58 @@ class MulticamScene
 
     struct HitboxMeshGroup
     {
-      std::string name;
-      Matrix4x4 transform;
+        std::string name;
+        Matrix4x4 transform;
 
-      std::vector<std::shared_ptr<std::vector<uint32_t>>> indices;
-      std::vector<std::shared_ptr<std::vector<float3>>> positions;
+        std::vector<std::shared_ptr<std::vector<uint32_t>>> indices;
+        std::vector<std::shared_ptr<std::vector<float3>>> positions;
 
-      Aabb object_aabb;
-      Aabb world_aabb;
+        Aabb object_aabb;
+        Aabb world_aabb;
     };
 
     struct Triangle
     {
-      float p1, p2, p3;
+        float p1, p2, p3;
     };
 
     ~MulticamScene();// Destructor
 
+    // Obtain access to a mesh of positions (to scan over a landscape)
+    const std::vector<BufferView<float3> >* getMeshPositions (size_t idx)
+    {
+        if (idx >= this->m_meshes.size()) { return nullptr; }
+        return &this->m_meshes[idx]->positions;
+    }
+    const std::vector<BufferView<float3> >* getMeshNormals (size_t idx)
+    {
+        if (idx >= this->m_meshes.size()) { return nullptr; }
+        return &this->m_meshes[idx]->normals;
+    }
 
-    void addCamera  ( GenericCamera* cameraPtr  );
-    uint32_t addCompoundCamera  (CompoundEye* cameraPtr); // Returns the position of the compound camera in the array for later reference
-    void addMesh    ( std::shared_ptr<MeshGroup> mesh )    { m_meshes.push_back( mesh );       }
+    // Return index of the added camera
+    int addCamera  ( GenericCamera* cameraPtr  );
+    // Returns the position of the compound camera in the array for later reference
+    uint32_t addCompoundCamera  (int camera_index, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec);
+    uint32_t addMesh    ( std::shared_ptr<MeshGroup> mesh )    {
+        m_meshes.push_back( mesh );
+        return (this->m_meshes.size() - 1u);
+    }
     void addMaterial( const MaterialData::Pbr& mtl    )    { m_materials.push_back( mtl );     }
     void addBuffer  ( const uint64_t buf_size, const void* data );
     void addImage(
-                const int32_t width,
-                const int32_t height,
-                const int32_t bits_per_component,
-                const int32_t num_components,
-                const void*   data
-                );
+        const int32_t width,
+        const int32_t height,
+        const int32_t bits_per_component,
+        const int32_t num_components,
+        const void*   data
+        );
     void addSampler(
-                cudaTextureAddressMode address_s,
-                cudaTextureAddressMode address_t,
-                cudaTextureFilterMode  filter_mode,
-                const int32_t          image_idx
-                );
+        cudaTextureAddressMode address_s,
+        cudaTextureAddressMode address_t,
+        cudaTextureFilterMode  filter_mode,
+        const int32_t          image_idx
+        );
 
     CUdeviceptr                    getBuffer ( int32_t buffer_index  )const;
     cudaArray_t                    getImage  ( int32_t image_index   )const;
@@ -159,7 +178,7 @@ class MulticamScene
     void                                      checkIfCurrentCameraIsCompound();// Updates flag accessed below
     const bool                                isCompoundEyeActive() const  { return m_selectedCameraIsCompound; }
     void                                      changeCompoundSampleRateBy(int change);
-    
+
 
     OptixPipeline                             pipeline()const              { return m_pipeline;   }
     const OptixShaderBindingTable*            sbt()const                   { return &m_sbt;       }
@@ -187,7 +206,16 @@ class MulticamScene
     std::string                          m_backgroundShader         = "__miss__default_background";
 
     std::vector<sutil::hitscan::TriangleMesh>         m_hitboxMeshes; // Stores all triangle meshes public, because why the hell not?
-  private:
+    // The CPU side vector of ommatidia used to create each CompoundEye in m_compoundEyes
+    std::map<int, std::vector<Ommatidium>> m_ommVecs;
+
+    // The eye data file, specified as "compound-structure" for compound eyes
+    std::string eye_data_path = "";
+
+    // Rendering the OpenGL window costs time, make it optional
+    bool enable_render_window = true;
+
+private:
     void createPTXModule();
     void createProgramGroups();
     void createPipeline();
@@ -195,7 +223,7 @@ class MulticamScene
 
     void createCompoundPipeline();
 
-    std::vector<GenericCamera*>          m_cameras;// cameras is a vector of pointers to Camera objects.
+    std::map<int, GenericCamera*>        m_cameras;// cameras is a map of pointers to Camera objects.
     std::vector<std::shared_ptr<MeshGroup> > m_meshes;
     std::vector<MaterialData::Pbr>       m_materials;
     std::vector<CUdeviceptr>             m_buffers;
@@ -210,15 +238,19 @@ class MulticamScene
     OptixModule                          m_ptx_module               = 0;
 
     // Compound eye stuff (A lot of these are stored precomp values so they don't have to be recomputed every frame)
-    std::vector<CompoundEye*>            m_compoundEyes; // Contains pointers to all compound eyes (shared with the m_cameras vector).
+
+    // Contains pointers to all compound eyes (shared with the m_cameras vector). Might make more
+    // sense for this to be map<int, CompoundEye*>
+    std::map<int, CompoundEye*>          m_compoundEyes;
+
     OptixShaderBindingTable              m_compound_sbt             = {};
     OptixPipeline                        m_compound_pipeline        = 0;
     OptixProgramGroup                    m_compound_raygen_group    = 0;
     bool                                 m_selectedCameraIsCompound = false;
 
-    OptixProgramGroup m_raygen_prog_group = 0;
-    OptixProgramGroupDesc raygen_prog_group_desc = {};
-    OptixProgramGroupOptions program_group_options = {};
+    OptixProgramGroup                    m_raygen_prog_group = 0;
+    OptixProgramGroupDesc                raygen_prog_group_desc = {};
+    OptixProgramGroupOptions             program_group_options = {};
 
     OptixProgramGroup                    m_pinhole_raygen_prog_group= 0;
     OptixProgramGroup                    m_ortho_raygen_prog_group  = 0;
@@ -230,7 +262,7 @@ class MulticamScene
     CUdeviceptr                          m_d_ias_output_buffer      = 0;
 
     size_t                               currentCamera              = 0;
-    size_t                               lastPipelinedCamera        = -1;
+    size_t                               lastPipelinedCamera        = std::numeric_limits<size_t>::max();
 };
 
 
