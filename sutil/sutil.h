@@ -50,6 +50,8 @@ struct GLFWwindow;
 namespace sutil
 {
 
+static constexpr bool debug_sutil = false;
+
 enum BufferImageFormat
 {
     UNSIGNED_BYTE4,
@@ -81,7 +83,7 @@ SUTILAPI void displayBufferFile( const char* filename, const ImageBuffer& buffer
 
 SUTILAPI void        initGL();
 SUTILAPI void        initGLFW();
-SUTILAPI GLFWwindow* initGLFW( const char* window_title, int width, int height );
+SUTILAPI GLFWwindow* initGLFW( const char* window_title, int width, int height, bool visible );
 SUTILAPI void        initImGui( GLFWwindow* window );
 SUTILAPI GLFWwindow* initUI( const char* window_title, int width, int height );
 SUTILAPI void        cleanupUI( GLFWwindow* window );
@@ -145,4 +147,3 @@ SUTILAPI void ensureMinimumSize(
 SUTILAPI void reportErrorMessage( const char* message );
 
 } // end namespace sutil
-

@@ -33,10 +33,17 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
       }else if(key == GLFW_KEY_B){
         previousCamera();
       }else if(key == GLFW_KEY_PAGE_UP){
-        changeCurrentEyeSamplesPerOmmatidiumBy(10);
+        int csamp = getCurrentEyeSamplesPerOmmatidium();
+        if (csamp < 32000) {
+            changeCurrentEyeSamplesPerOmmatidiumBy(csamp); // double
+        } else {
+            // else graphics memory use will get very large
+            std::cout << "max allowed samples\n";
+        }
       }else if(key == GLFW_KEY_PAGE_DOWN){
-        changeCurrentEyeSamplesPerOmmatidiumBy(-10);
-      }else if(key = GLFW_KEY_C){
+        int csamp = getCurrentEyeSamplesPerOmmatidium();
+        changeCurrentEyeSamplesPerOmmatidiumBy(-(csamp/2)); // halve
+      }else if(key == GLFW_KEY_C){
         saveFrameAs("output.ppm");
       }
 
@@ -57,7 +64,7 @@ void printHelp()
 {
   std::cout << "USAGE:\nnewGuiEyeRenderer -f <path to gltf scene>" << std::endl << std::endl;
   std::cout << "\t-h\tDisplay this help information." << std::endl;
-  std::cout << "\t-f\tPath to a gltf scene file (absolute or relative to data folder, e.g. 'natural-standin-sky.gltf')." << std::endl;
+  std::cout << "\t-f\tPath to a gltf scene file (absolute or relative to current working directory, e.g. './natural-standin-sky.gltf')." << std::endl;
 }
 
 int main( int argc, char* argv[] )
@@ -98,7 +105,6 @@ int main( int argc, char* argv[] )
   //glfwSetWindowSizeCallback ( window, windowSizeCallback  );
   //glfwSetScrollCallback     ( window, scrollCallback      );
   //glfwSetWindowUserPointer  ( window, &params       );
-  std::string infile = sutil::sampleDataFilePath(path.c_str());
 
   try
   {
@@ -106,8 +112,8 @@ int main( int argc, char* argv[] )
     setVerbosity(false);
 
     // Load the file
-    std::cout << "Loading file \"" << infile << "\"..." << std::endl;
-    loadGlTFscene(infile.c_str());
+    std::cout << "Loading file \"" << path << "\"..." << std::endl;
+    loadGlTFscene(path.c_str());
 
     // The main loop
     do
@@ -117,11 +123,11 @@ int main( int argc, char* argv[] )
       if(controller.isActivelyMoving())
       {
         float3 t = controller.getMovementVector();// Local translation
-        translateCameraLocally(t.x, t.y, t.z);
+        translateCamerasLocally(t.x, t.y, t.z);
         float va = controller.getVerticalRotationAngle();
         float vh = controller.getHorizontalRotationAngle();
-        rotateCameraLocallyAround(va, 1.0f, 0.0f, 0.0f);
-        rotateCameraAround(vh, 0.0f, 1.0f, 0.0f);
+        rotateCamerasLocallyAround(va, 1.0f, 0.0f, 0.0f);
+        rotateCamerasAround(vh, 0.0f, 1.0f, 0.0f);
         dirtyUI = true;
       }
 
@@ -130,7 +136,6 @@ int main( int argc, char* argv[] )
       // better feeling of the stochastic spread encountered.
       if(dirtyUI || isCompoundEyeActive())
       {
-
         renderFrame();
         displayFrame();
         dirtyUI = false; // Comment this out to force constant re-rendering
