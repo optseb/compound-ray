@@ -43,8 +43,10 @@ add_library( imgui STATIC
   imstb_truetype.h
   )
 
-target_include_directories( imgui
-  INTERFACE ..
-  PRIVATE . )
+target_include_directories( imgui INTERFACE PRIVATE
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>" )
+
 target_compile_definitions( imgui PRIVATE IMGUI_IMPL_OPENGL_LOADER_GLAD )
-target_link_libraries( imgui glfw glad ${OPENGL_gl_LIBRARY})
+
+target_link_libraries( imgui ${GLFW_LIB_NAME} glad ${OPENGL_gl_LIBRARY})
