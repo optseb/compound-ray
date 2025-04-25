@@ -730,10 +730,6 @@ extern "C" __global__ void __raygen__ommatidium()
   // For instance, if each ommatidium is to make 20 samples then each launch of this shader is one sample and only
   // contributes 0.05/1 to the final colour in the compound buffer.
   ((float3*)posedData.specializedData.d_compoundBuffer)[id] = payload.result * (1.0f/posedData.specializedData.samplesPerOmmatidium); // Scale it down as these will be summed in the projection shader
-
-  // Also update the average. This slows down this kernel, but makes data available for transfer to CPU
-  // atomic stuff. However, you simply cannot do the syncing that is needed with Optix. So this has to go in a separate CUDA kernel.
-  ((float3*)posedData.specializedData.d_compoundAvgBuffer)[ommatidialIndex] += payload.result * (1.0f/posedData.specializedData.samplesPerOmmatidium);
   // end atomic stuff
 }
 
