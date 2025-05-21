@@ -424,19 +424,13 @@ namespace
                 }
 
                 auto texcoord_accessor_iter = gltf_primitive.attributes.find( "TEXCOORD_0" ) ;
-                if( texcoord_accessor_iter  !=  gltf_primitive.attributes.end() )
-                {
-                    if constexpr (debug_gltf == true) {
-                        std::cerr << "\t\tHas texcoords: true\n";
-                    }
-                    mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, texcoord_accessor_iter->second ) );
-                }
-                else
-                {
-                    if constexpr (debug_gltf == true) {
-                        std::cerr << "\t\tHas texcoords: false\n";
-                    }
-                    mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, -1 ) );
+
+                if (texcoord_accessor_iter != gltf_primitive.attributes.end()) {
+                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas texcoords: true\n"; }
+                    mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, texcoord_accessor_iter->second));
+                } else {
+                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas texcoords: false\n"; }
+                    mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, -1));
                 }
 
                 auto vertex_colours_accessor_iter = gltf_primitive.attributes.find( "COLOR_0" ) ;
@@ -509,6 +503,9 @@ namespace
                             break;
                         }
                         mesh->host_color_types.push_back(componentType);
+                        if constexpr (debug_gltf == true) {
+                            std::cerr << "\t\tmesh->host_color_types.push_back(" << componentType << ");\n";
+                        }
                         if (mesh->host_color_container == -1) {
                             mesh->host_color_container = 4;
                         }
@@ -556,6 +553,10 @@ namespace
                             break;
                         }
                         mesh->host_color_types.push_back(componentType);
+                        if constexpr (debug_gltf == true) {
+                            std::cerr << "\t\tmesh->host_color_types.push_back(" << componentType << ");\n";
+                        }
+
                         if (mesh->host_color_container == -1) {
                             mesh->host_color_container = 3;
                         }
@@ -570,6 +571,9 @@ namespace
                         mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
                         mesh->host_colors_f4.push_back( bufferViewFromGLTF<float4>( model, scene, -1) );
                         mesh->host_colors_us4.push_back( bufferViewFromGLTF<ushort4>( model, scene, -1) );
+                        if constexpr (debug_gltf == true) {
+                            std::cerr << "\t\tmesh->host_color_types.push_back(-1);\n";
+                        }
                         mesh->host_color_types.push_back(-1);
                     }
 
@@ -580,6 +584,9 @@ namespace
                         std::cerr << "\t\tHas vertex colours: false\n";
                     }
                     mesh->host_color_types.push_back(-1);
+                    if constexpr (debug_gltf == true) {
+                        std::cerr << "\t\tmesh->host_color_types.push_back(-1);\n";
+                    }
                     // We must populate the other buffers so that indices align
                     mesh->host_colors_uc4.push_back( bufferViewFromGLTF<uchar4>( model, scene, -1 ) );
                     mesh->host_colors_f3.push_back( bufferViewFromGLTF<float3>( model, scene, -1) );
@@ -749,6 +756,7 @@ void loadScene( const std::string& filename, MulticamScene& scene )
                 if constexpr (debug_gltf == true) {
                     std::cerr << "\tNo base color tex\n";
                 }
+                mtl.base_color_tex = 0;
             }
         }
 

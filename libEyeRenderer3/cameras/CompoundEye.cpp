@@ -295,8 +295,7 @@ void CompoundEye::InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, O
     if constexpr (debug_memory == true) {
         std::cout << "Allocating compound SBT pointer record on device (size: " << sizeof(s_compoundRecordPtrRecord) << ")..." << std::endl;
     }
-    if(s_d_compoundRecordPtrRecord != 0)
-    {
+    if (s_d_compoundRecordPtrRecord != 0) {
         if constexpr (debug_memory == true) {
             std::cout << "\tWARN: Attempt to allocate compound SBT pointer record was made when one is already allocated." << std::endl;
         }
@@ -329,8 +328,7 @@ void CompoundEye::InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, O
 void CompoundEye::FreeCompoundRecord()
 {
     if constexpr (debug_memory == true) { std::cout << "Freeing compound SBT record... "; }
-    if(s_d_compoundRecordPtrRecord != 0)
-    {
+    if(s_d_compoundRecordPtrRecord != 0) {
         CUDA_CHECK( cudaFree(reinterpret_cast<void*>(s_d_compoundRecordPtrRecord)) );
         s_d_compoundRecordPtrRecord = 0;
         if constexpr (debug_memory == true) { std::cout << "done!" << std::endl; }

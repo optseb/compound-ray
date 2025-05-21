@@ -117,7 +117,7 @@ public:
 #if 0
         CUDA_CHECK (cudaMemset (reinterpret_cast<void*>(d_record), 0, sizeof(this->sbtRecord)));
 #else
-        if (mycounter < 14) {
+        if (mycounter < 149000000) {
             auto mc_res = cudaMemcpy (reinterpret_cast<void*>(d_record), &sbtRecord, sizeof(this->sbtRecord), cudaMemcpyHostToDevice);
             std::cout << "cudaMemcpy " << mycounter++ << " to device address " << d_record << " from &sbtRecord " << &this->sbtRecord
                       << " result: " << (int)mc_res << std::endl;

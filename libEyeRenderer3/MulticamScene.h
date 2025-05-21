@@ -173,7 +173,7 @@ public:
 
     //// Compound eye functions (note: similar to others here)
     const bool                                hasCompoundEyes() const      { return ommatidialCameraCount() > 0; }
-    const OptixShaderBindingTable*            OmmatidialSbt() const        { return &m_compound_sbt; }
+    //const OptixShaderBindingTable*            OmmatidialSbt() const        { return &m_compound_sbt; } // unused
     const uint32_t                            ommatidialCameraCount() const{ return m_compoundEyes.size(); }
     void                                      checkIfCurrentCameraIsCompound();// Updates flag accessed below
     const bool                                isCompoundEyeActive() const  { return m_selectedCameraIsCompound; }
@@ -195,8 +195,9 @@ public:
     // Changes the SBT to refelct the current camera (assumes all camera records are allocated)
     void reconfigureSBTforCurrentCamera(bool force);
 
-    OptixPipeline compoundPipeline()const { return m_compound_pipeline; }
-    const OptixShaderBindingTable* compoundSbt()const { return &m_compound_sbt; }
+    // OptixPipeline is a ptr to an opaque struct
+    OptixPipeline compoundPipeline() const { return m_compound_pipeline; }
+    const OptixShaderBindingTable* compoundSbt() const { return &m_compound_sbt; }
 
     // Scene manipulation
     bool isInsideHitGeometry(float3 worldPos, std::string name, bool debug = false);

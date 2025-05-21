@@ -129,6 +129,9 @@ void initLaunchParams( const MulticamScene& scene ) {
     lights[3].falloff   = Light::Falloff::QUADRATIC;
 
     params.lights.count  = static_cast<uint32_t>( lights.size() );
+
+    std::cout << "initLaunchParams(): params.lights.count  = " << params.lights.count << std::endl;
+
     CUDA_CHECK( cudaMalloc(
                     reinterpret_cast<void**>( &params.lights.data ),
                     lights.size() * sizeof( Light::Point )
@@ -164,6 +167,8 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene&
 {
     uchar4* result_buffer_data = output_buffer.map();
     params.frame_buffer        = result_buffer_data;
+
+    // d_params is a global pointer
     CUDA_CHECK( cudaMemcpyAsync( reinterpret_cast<void*>( d_params ),
                                  &params,
                                  sizeof( globalParameters::LaunchParams ),
@@ -171,21 +176,80 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>& output_buffer, MulticamScene&
                                  0 // stream
                     ) );
 
+    {
+        cudaDeviceSynchronize();
+        cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess) {
+            std::stringstream ss;
+            ss << "POST async memcpy CUDA error on synchronize with error " << (int)error << " '"
+               << cudaGetErrorString (error)
+               << "' (" __FILE__ << ":" << __LINE__ << ")\n";
+            throw sutil::Exception (ss.str().c_str());
+        }
+    } // this is more or less CUDA_SYNC_CHECK();
+
     if(scene.hasCompoundEyes() && scene.isCompoundEyeActive())
     {
+        {
+            cudaDeviceSynchronize();
+            cudaError_t error = cudaGetLastError();
+            if (error != cudaSuccess) {
+                std::stringstream ss;
+                ss << "PRE CUDA error on synchronize with error " << (int)error << " '"
+                   << cudaGetErrorString (error)
+                   << "' (" __FILE__ << ":" << __LINE__ << ")\n";
+                throw sutil::Exception (ss.str().c_str());
+            }
+        } // this is more or less CUDA_SYNC_CHECK();
+
         CompoundEye* camera = (CompoundEye*) scene.getCamera();
+
+        {
+            cudaDeviceSynchronize();
+            cudaError_t error = cudaGetLastError();
+            if (error != cudaSuccess) {
+                std::stringstream ss;
+                ss << "PRE2 CUDA error on synchronize with error " << (int)error << " '"
+                   << cudaGetErrorString (error)
+                   << "' (" __FILE__ << ":" << __LINE__ << ")\n";
+                throw sutil::Exception (ss.str().c_str());
+            }
+        } // this is more or less CUDA_SYNC_CHECK();
+
+        auto csbt = scene.compoundSbt();
         // Launch the ommatidial renderer
-        OPTIX_CHECK( optixLaunch(
-                         scene.compoundPipeline(),
-                         0,             // stream
-                         reinterpret_cast<CUdeviceptr>( d_params ),
-                         sizeof( globalParameters::LaunchParams ),
-                         scene.compoundSbt(),
-                         camera->getOmmatidialCount(),      // launch width
-                         camera->getSamplesPerOmmatidium(), // launch height
-                         1                                  // launch depth
-                         ) );
-        CUDA_SYNC_CHECK();
+#if 0
+        std::cout << "Launch with pipeline params: "
+                  << ((long long int)d_params)
+                  << " of size: " << sizeof( globalParameters::LaunchParams )
+                  << std::endl;
+#endif
+        auto cpl = scene.compoundPipeline();
+        // std::cout << "pipeline pointer is " << cpl << std::endl;
+        auto ole = optixLaunch (cpl,                                 // pipeline
+                                0,                                   // stream
+                                reinterpret_cast<CUdeviceptr>( d_params ), // pipelineParams
+                                sizeof( globalParameters::LaunchParams ),  // pipelineParamsSize
+                                csbt,
+                                camera->getOmmatidialCount(),      // launch width
+                                camera->getSamplesPerOmmatidium(), // launch height
+                                1                                  // launch depth
+            );
+        //std::cout << "Optix Launch error code: " << (int)ole << std::endl;
+        OPTIX_CHECK (ole);
+
+        {
+            cudaDeviceSynchronize();
+            cudaError_t error = cudaGetLastError();
+            if (error != cudaSuccess) {
+                std::stringstream ss;
+                ss << "SPECIAL CUDA error on synchronize with error " << (int)error << " '"
+                   << cudaGetErrorString (error)
+                   << "' (" __FILE__ << ":" << __LINE__ << ")\n";
+                throw sutil::Exception (ss.str().c_str());
+            }
+        } // this is more or less CUDA_SYNC_CHECK();
+
         params.frame++;// Increase the frame number
         camera->setRandomsAsConfigured();// Make sure that random stream initialization is only ever done once
 
