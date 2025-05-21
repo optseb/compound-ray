@@ -37,4 +37,3 @@ struct RecordPointer
 {
   CUdeviceptr d_record = 0; // Points to another record on VRAM
 };
-typedef RaygenRecord<RecordPointer> RecordPointerRecord;

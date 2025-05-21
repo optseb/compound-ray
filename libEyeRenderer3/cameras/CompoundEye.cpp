@@ -1,8 +1,8 @@
 #include "CompoundEye.h"
 #include "curand_kernel.h"
 
-RecordPointerRecord CompoundEye::s_compoundRecordPtrRecord;
-CUdeviceptr CompoundEye::s_d_compoundRecordPtrRecord = 0;
+RaygenRecord<RecordPointer> CompoundEye::s_compoundRecordPtrRecord = (RaygenRecord<RecordPointer>){};
+CUdeviceptr CompoundEye::s_d_compoundRecordPtrRecord = (CUdeviceptr){};
 
 CompoundEye::CompoundEye(const std::string name, const std::string shaderName, size_t ommatidialCount, const std::string& eyeDataPath) : DataRecordCamera<CompoundEyeData>(name), shaderName(NAME_PREFIX + shaderName)
 {
@@ -103,6 +103,15 @@ void CompoundEye::allocateOmmatidialMemory()
     }
     freeOmmatidialMemory();
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_ommatidialArray) ), memSize) );
+
+    if constexpr (debug_memory == true) {
+        CUDA_CHECK( cudaMemset(
+                        reinterpret_cast<void*>(specializedData.d_ommatidialArray),
+                        0,
+                        memSize
+                        ) );
+    }
+
     if constexpr (debug_memory == true) { std::cout << "\t...allocated at " << specializedData.d_ommatidialArray << std::endl; }
     CUDA_SYNC_CHECK();
 
@@ -142,6 +151,16 @@ void CompoundEye::allocateOmmatidialRandomStates()
     }
     freeOmmatidialRandomStates();
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_randomStates) ), memSize) );
+
+    if constexpr (debug_memory == true) {
+        CUDA_CHECK( cudaMemset(
+                        reinterpret_cast<void*>(specializedData.d_randomStates),
+                        0,
+                        memSize
+                        ) );
+    }
+
+
     if constexpr (debug_memory == true) { std::cout << "\t...allocated at " << specializedData.d_randomStates << std::endl; }
     // TODO(RANDOMS): The randomStateBuffer is currently unitialized. For now we'll be initializing it with if statements in the ommatidial shader, but in the future a CUDA function could be called here to initialize it.
     // Set this camera's randomsConfigured switch to false so that the aforementioned if statement can work:
@@ -177,6 +196,16 @@ void CompoundEye::allocateCompoundRenderingBuffer()
     }
     freeCompoundRenderingBuffer();
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_compoundBuffer) ), memSize) );
+
+    if constexpr (debug_memory == true) {
+        CUDA_CHECK( cudaMemset(
+                        reinterpret_cast<void*>(specializedData.d_compoundBuffer),
+                        0,
+                        memSize
+                        ) );
+    }
+
+
     if constexpr (debug_memory == true) { std::cout << "...allocated at " << specializedData.d_compoundBuffer << std::endl; }
     CUDA_SYNC_CHECK();
 }
@@ -211,6 +240,15 @@ void CompoundEye::allocateCompoundRenderingAvgBuffer()
     }
     freeCompoundRenderingAvgBuffer();
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &(specializedData.d_compoundAvgBuffer) ), memSize) );
+
+    if constexpr (debug_memory == true) {
+        CUDA_CHECK( cudaMemset(
+                        reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer),
+                        0,
+                        memSize
+                        ) );
+    }
+
     if constexpr (debug_memory == true) { std::cout << "[CAMERA: " << getCameraName() << "] Compound AVG buffer re-allocated\n"; }
     CUDA_SYNC_CHECK();
 }
@@ -264,7 +302,20 @@ void CompoundEye::InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, O
         }
         return;
     }
+
+    FreeCompoundRecord();
+
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>(&s_d_compoundRecordPtrRecord), sizeof(s_compoundRecordPtrRecord)) );
+
+    if constexpr (debug_memory == true) {
+        CUDA_CHECK( cudaMemset(
+                        reinterpret_cast<void*>(s_d_compoundRecordPtrRecord),
+                        0,
+                        sizeof(s_compoundRecordPtrRecord)
+                        ) );
+    }
+
+
     if constexpr (debug_memory == true) { std::cout << "...allocated at " << s_d_compoundRecordPtrRecord << std::endl; }
 
     // Actually point the record to the target record
@@ -278,7 +329,7 @@ void CompoundEye::InitiateCompoundRecord(OptixShaderBindingTable& compoundSbt, O
 void CompoundEye::FreeCompoundRecord()
 {
     if constexpr (debug_memory == true) { std::cout << "Freeing compound SBT record... "; }
-    if(s_d_compoundRecordPtrRecord!= 0)
+    if(s_d_compoundRecordPtrRecord != 0)
     {
         CUDA_CHECK( cudaFree(reinterpret_cast<void*>(s_d_compoundRecordPtrRecord)) );
         s_d_compoundRecordPtrRecord = 0;
