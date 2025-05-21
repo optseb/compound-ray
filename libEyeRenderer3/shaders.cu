@@ -353,7 +353,7 @@ __device__ float3 getSummedOmmatidiumData(const uint32_t ommatidiumIndex, Compou
  */
 extern "C" __global__ void __raygen__compound_projection_raw_ommatidial_samples()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3 launch_idx          = optixGetLaunchIndex();
   const uint3 launch_dims         = optixGetLaunchDimensions();
   const CompoundEyeData& eyeData  = posedData->specializedData;
@@ -374,7 +374,7 @@ extern "C" __global__ void __raygen__compound_projection_raw_ommatidial_samples(
  */
 extern "C" __global__ void __raygen__compound_projection_single_dimension()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -396,7 +396,7 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension()
  */
 extern "C" __global__ void __raygen__compound_projection_single_dimension_fast()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3 launch_idx = optixGetLaunchIndex();
 
   // Break if this is not a pixel to render:
@@ -412,7 +412,7 @@ extern "C" __global__ void __raygen__compound_projection_single_dimension_fast()
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_positionwise()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -454,7 +454,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_positionwise(
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_orientationwise()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -497,7 +497,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_split_orientationwise()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -549,7 +549,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_split_orienta
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_orientationwise_ids()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -601,7 +601,7 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
  */
 extern "C" __global__ void __raygen__compound_projection_spherical_positionwise_ids()
 {
-  CompoundEyePosedData* posedData = (CompoundEyePosedData*)optixGetSbtDataPointer();
+  auto posedData = (RaygenPosedContainer<CompoundEyeData>*)optixGetSbtDataPointer();
   const uint3  launch_idx      = optixGetLaunchIndex();
   const uint3  launch_dims     = optixGetLaunchDimensions();
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
@@ -670,7 +670,7 @@ extern "C" __global__ void __raygen__ommatidium()
   const uint32_t ommatidialIndex = launch_idx.x;
   const int id = launch_dims.x * launch_idx.y + launch_idx.x;
   const RecordPointer* recordPointer = (RecordPointer*)optixGetSbtDataPointer();// Gets the compound record, which points to the current camera's record.
-  const CompoundEyePosedData posedData = ((CompoundEyePosedDataRecord*)(recordPointer->d_record))->data; // Contains the actual posed eye data
+  const RaygenPosedContainer<CompoundEyeData> posedData = ((RaygenRecord<RaygenPosedContainer<CompoundEyeData>>*)(recordPointer->d_record))->data; // Contains the actual posed eye data
 
   Ommatidium* allOmmatidia = (Ommatidium*)(posedData.specializedData.d_ommatidialArray);// List of all ommatidia
   Ommatidium ommatidium = *(allOmmatidia + ommatidialIndex);// This ommatidium
