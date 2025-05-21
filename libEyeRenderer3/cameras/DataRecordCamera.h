@@ -10,8 +10,8 @@ class DataRecordCamera : public GenericCamera {
 public:
 
     // Compile time choice of debug output in camera code
-    static constexpr bool debug_cameras = false;
-    static constexpr bool debug_memory = false;
+    static constexpr bool debug_cameras = true;
+    static constexpr bool debug_memory = true;
 
     DataRecordCamera(const std::string name) : GenericCamera(name)
     {
@@ -98,37 +98,33 @@ public:
                 std::cout << "ALERT: The following copy was triggered as the sbt record was flagged as changed:" <<std::endl;
             }
             forcePackAndCopyRecord(programGroup);
+            std::cout << std::endl;
             return true;
-        }
+        } // else: you'd get a lot of noise cout-ing the else clause
         return false;
     }
 
+    int mycounter = 0;
+
     void forcePackAndCopyRecord(OptixProgramGroup& programGroup)
     {
-        if constexpr (debug_cameras == true) {
-            std::cout<< "Copying device memory for camera '"<<getCameraName()<<"'."<<std::endl;
-            std::cout<< "\tproggroup: "<< programGroup<<std::endl;
-            std::cout<< "\tPosition: ("<<sbtRecord.data.position.x<<", "
-                     <<sbtRecord.data.position.y<<", "
-                     <<sbtRecord.data.position.z<<")"<<std::endl;
-            std::cout<< "\tLocalSpace: (("<<sbtRecord.data.localSpace.xAxis.x<<", "
-                     <<sbtRecord.data.localSpace.xAxis.y<<", "
-                     <<sbtRecord.data.localSpace.xAxis.z<<")"<<std::endl << "\t              "
-                     <<sbtRecord.data.localSpace.yAxis.x<<", "
-                     <<sbtRecord.data.localSpace.yAxis.y<<", "
-                     <<sbtRecord.data.localSpace.yAxis.z<<")"<<std::endl << "\t              "
-                     <<sbtRecord.data.localSpace.zAxis.x<<", "
-                     <<sbtRecord.data.localSpace.zAxis.y<<", "
-                     <<sbtRecord.data.localSpace.zAxis.z<<")"<<std::endl;
+        // ProgramGroup contains the opaque type OptixModule along with a function pointer.
+        OptixResult rph_res = optixSbtRecordPackHeader (programGroup, reinterpret_cast<void*>(&this->sbtRecord));
+        std::cout << "optixSbtRecordPackHeader PACKED header into &sbtRecord " << &this->sbtRecord
+                  << " with result: " << (int)rph_res <<  std::endl;
+        OPTIX_CHECK (rph_res);
+
+#if 0
+        CUDA_CHECK (cudaMemset (reinterpret_cast<void*>(d_record), 0, sizeof(this->sbtRecord)));
+#else
+        if (mycounter < 14) {
+            auto mc_res = cudaMemcpy (reinterpret_cast<void*>(d_record), &sbtRecord, sizeof(this->sbtRecord), cudaMemcpyHostToDevice);
+            std::cout << "cudaMemcpy " << mycounter++ << " to device address " << d_record << " from &sbtRecord " << &this->sbtRecord
+                      << " result: " << (int)mc_res << std::endl;
+            CUDA_CHECK (mc_res);
         }
-        OPTIX_CHECK( optixSbtRecordPackHeader( programGroup, &sbtRecord) );
-        CUDA_CHECK( cudaMemcpy(
-                        reinterpret_cast<void*>( d_record ),
-                        &sbtRecord,
-                        sizeof(sbtRecord),
-                        cudaMemcpyHostToDevice
-                        ) );
-        previous_sbtRecordData = sbtRecord.data;
+#endif
+        previous_sbtRecordData = this->sbtRecord.data;
     }
 
     virtual const CUdeviceptr& getRecordPtr() const {return d_record;}
@@ -164,6 +160,10 @@ private:
             return;
         }
         CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &d_record ), sizeof(sbtRecord)) );
+
+        if constexpr (debug_memory == true) {
+            std::cout << "SBT allocated at d_record=" << d_record << " and d_record%16 = " << (d_record%16) << std::endl;
+        }
     }
     void freeRecord()
     {
