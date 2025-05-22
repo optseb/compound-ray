@@ -811,7 +811,7 @@ extern "C" __global__ void __closesthit__radiance()
             if (mbc == 0) {
                 base_color = make_float3 (1.0f, 0.0f, 0.0f);
             } else {
-#ifdef CRASH_PROOFED
+#ifndef CRASH_PROOFED
                 float4 my_tex = tex2D<float4> (mbc, geom.UV.x, geom.UV.y); // Having geom.UV.x/y there makes code crashy...
 #else
                 float4 my_tex = tex2D<float4> (mbc, 0, 0);                 // ...but this is ok (?!?)
@@ -877,7 +877,7 @@ extern "C" __global__ void __closesthit__radiance()
         if (N_dot_L > 0.0f && N_dot_V > 0.0f) {
             const float tmin     = 0.001f;          // TODO
             const float tmax     = L_dist - 0.001f; // TODO
-#ifdef CRASH_PROOFED
+#ifndef CRASH_PROOFED
             const bool occluded = traceOcclusion (params.handle, geom.P, L, tmin, tmax);
 #else
             const bool occluded = false;
@@ -888,7 +888,7 @@ extern "C" __global__ void __closesthit__radiance()
                 const float  D     = ggxNormal (N_dot_H, alpha);
                 const float3 diff = (1.0f - F) * diff_color / M_PIf;
                 const float3 spec = F * G_vis * D;
-#ifdef CRASH_PROOFED
+#ifndef CRASH_PROOFED
                 result += light.color * light.intensity * N_dot_L * (diff + spec);
 #endif
             }

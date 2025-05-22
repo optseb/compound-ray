@@ -41,7 +41,7 @@ struct GeometryData
 
     struct TriangleMesh
     {
-        GenericBufferView    indices;
+        BufferView<uint32_t> indices;
         BufferView<float3>   positions;
         BufferView<float3>   normals;
         BufferView<float2>   texcoords;

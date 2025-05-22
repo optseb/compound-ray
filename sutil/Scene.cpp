@@ -232,11 +232,15 @@ void processGLTFNode(
             if( texcoord_accessor_iter  !=  gltf_primitive.attributes.end() )
             {
                 std::cerr << "\t\tHas texcoords: true\n";
+                auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
+                std::cerr << "\t\ttexcoords count will be " << bvv.count << std::endl;
                 mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, texcoord_accessor_iter->second ) );
             }
             else
             {
                 std::cerr << "\t\tHas texcoords: false\n";
+                auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
+                std::cerr << "\t\texcoords count will be " << bvv.count << std::endl;
                 mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, -1 ) );
             }
         }

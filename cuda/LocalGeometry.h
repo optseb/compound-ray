@@ -87,9 +87,10 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
 
             // Set UV texture coordinates
             float2 UV0, UV1, UV2;
-            if( mesh_data.texcoords )
+            if (mesh_data.texcoords)
             {
-                UV0 = mesh_data.texcoords[ tri.x ];
+                // Either access to tri.x/y/z or indexing texcoords cause the crash
+                /*if (tri.x < mesh_data.texcoords.count) {*/ UV0 = mesh_data.texcoords[ tri.x ]; /* } */
                 UV1 = mesh_data.texcoords[ tri.y ];
                 UV2 = mesh_data.texcoords[ tri.z ];
                 lgeom.UV = ( 1.0f-barys.x-barys.y)*UV0 + barys.x*UV1 + barys.y*UV2;

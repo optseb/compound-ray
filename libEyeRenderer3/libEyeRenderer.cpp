@@ -335,7 +335,6 @@ double renderFrame(void)
     handleCameraUpdate();
 
     auto then = std::chrono::steady_clock::now();
-    std::cout << "In renderFrame() calling launchFrame..." << std::endl;
     launchFrame( outputBuffer, scene );
     CUDA_SYNC_CHECK();
     std::chrono::duration<double, std::milli> render_time = std::chrono::steady_clock::now() - then;

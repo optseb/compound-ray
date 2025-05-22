@@ -32,7 +32,6 @@
 
 #include <stdint.h>
 
-
 template <typename T>
 struct BufferView
 {
@@ -49,7 +48,11 @@ struct BufferView
 
     SUTIL_HOSTDEVICE const T& operator[]( uint32_t idx ) const
     { return *reinterpret_cast<T*>( data + idx*(byte_stride ? byte_stride : sizeof( T ) ) ); }
+
+    uint32_t size()
+    {
+        uint32_t sz = 0;
+        // How do we know??
+        return sz;
+    }
 };
-
-typedef BufferView<uint32_t> GenericBufferView;
-

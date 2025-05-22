@@ -57,7 +57,7 @@ public:
         std::string                       name;
         Matrix4x4                         transform;
 
-        std::vector<GenericBufferView>    indices;
+        std::vector<BufferView<uint32_t> >    indices;
         std::vector<BufferView<float3> >  positions;
         std::vector<BufferView<float3> >  normals;
         std::vector<BufferView<float2> >  texcoords;
@@ -145,4 +145,3 @@ private:
 SUTILAPI void loadScene( const std::string& filename, Scene& scene );
 
 } // end namespace sutil
-
