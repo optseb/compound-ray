@@ -112,6 +112,9 @@ namespace
         buffer_view.count          = static_cast<uint32_t>(gltf_accessor.count * cmpts_in_type);
         buffer_view.elmt_byte_size = static_cast<uint16_t>(elmt_byte_size);
 
+        //std::cout << "cmpts_in_type: " << cmpts_in_type << "; buffer_view.count: " << buffer_view.count << " .elmt_byte_size: "
+        //          <<  buffer_view.elmt_byte_size << " .byte_stride: "<< buffer_view.byte_stride << std::endl;
+
         return buffer_view;
     }
 
@@ -383,13 +386,13 @@ namespace
                 mesh->material_idx.push_back( gltf_primitive.material );
                 mesh->transform = node_xform;
                 if constexpr (debug_gltf == true) {
-                    std::cerr << "\t\tNum triangles: " << mesh->indices.back().count / 3 << std::endl;
+                    std::cerr << "\t\tNum triangles is indices.count/3: " << mesh->indices.back().count / 3 << std::endl;
                 }
                 assert( gltf_primitive.attributes.find( "POSITION" ) !=  gltf_primitive.attributes.end() );
                 const int32_t pos_accessor_idx =  gltf_primitive.attributes.at( "POSITION" );
                 mesh->positions.push_back( bufferViewFromGLTF<float3>( model, scene, pos_accessor_idx ) );
                 if constexpr (debug_gltf == true) {
-                    std::cerr << "\t\tNum vertices(positions): " << mesh->positions.back().count / 3 << std::endl;
+                    std::cerr << "\t\tNum vertices(positions count/3): " << mesh->positions.back().count / 3 << std::endl;
                 }
 
                 const auto& pos_gltf_accessor = model.accessors[ pos_accessor_idx ];
@@ -428,7 +431,7 @@ namespace
                 if (texcoord_accessor_iter != gltf_primitive.attributes.end()) {
                     if constexpr (debug_gltf == true) {
                         std::cerr << "\t\tHas texcoords: true\n";
-                        auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
+                        auto bvv = bufferViewFromGLTF<float2>(model, scene, texcoord_accessor_iter->second);
                         std::cerr << "\t\ttexcoords count will be " << bvv.count << std::endl;
                     }
                     mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, texcoord_accessor_iter->second));
@@ -1867,10 +1870,11 @@ void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
                         reinterpret_cast<void**>( &sbt.hitgroupRecordBase ),
                         hitgroup_record_size*hitgroup_records.size()
                         ) );
+        // HERE we're copying those triangle meshes to GPU
         CUDA_CHECK( cudaMemcpy(
                         reinterpret_cast<void*>( sbt.hitgroupRecordBase ),
                         hitgroup_records.data(),
-                        hitgroup_record_size*hitgroup_records.size(),
+                        hitgroup_record_size * hitgroup_records.size(),
                         cudaMemcpyHostToDevice
                         ) );
 

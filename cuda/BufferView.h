@@ -49,10 +49,10 @@ struct BufferView
     SUTIL_HOSTDEVICE const T& operator[]( uint32_t idx ) const
     { return *reinterpret_cast<T*>( data + idx*(byte_stride ? byte_stride : sizeof( T ) ) ); }
 
-    uint32_t size()
+    uint32_t size_bytes()
     {
-        uint32_t sz = 0;
-        // How do we know??
-        return sz;
+        uint32_t sz_bytes = count * (byte_stride ? byte_stride : sizeof(T));
+        return sz_bytes;
     }
+    uint32_t size_elements() { return count; }
 };
