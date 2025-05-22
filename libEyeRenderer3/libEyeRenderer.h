@@ -16,22 +16,6 @@ struct OmmatidiumPacket
     float focalpointOffset;
 };
 
-#if 0
-// Forwards
-class MulticamScene;
-namespace globalParameters {
-class LaunchParams;
-}
-namespace sutil {
-template <typename T>
-class CUDAOutputBuffer;
-}
-
-extern MulticamScene* scene;
-extern globalParameters::LaunchParams*  params;
-extern sutil::CUDAOutputBuffer<uchar4>* outputBuffer;
-#endif
-
 extern "C"
 {
     // Alloc

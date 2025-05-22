@@ -106,12 +106,14 @@ bool notificationsActive = true;
 
 void multicamAlloc()
 {
+    std::cout << __func__ << " called" << std::endl;
     scene = new MulticamScene{};
     params = new globalParameters::LaunchParams{};
     outputBuffer = new sutil::CUDAOutputBuffer<uchar4>(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
 }
 void multicamDealloc()
 {
+    std::cout << __func__ << " called" << std::endl;
     delete outputBuffer;
     delete params;
     delete scene;
@@ -178,14 +180,14 @@ void handleCameraUpdate()
 }
 
 // Launch Optix threads to render a frame. Once this is done getCameraData() accesses the summed average values
-void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene* scene )
+void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene* _scene )
 {
     uchar4* result_buffer_data = output_buffer->map();
     params->frame_buffer        = result_buffer_data;
 
     // d_params is a global pointer
     CUDA_CHECK( cudaMemcpyAsync( reinterpret_cast<void*>( d_params ),
-                                 &params,
+                                 params,
                                  sizeof( globalParameters::LaunchParams ),
                                  cudaMemcpyHostToDevice,
                                  0 // stream
@@ -203,7 +205,7 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene*
         }
     } // this is more or less CUDA_SYNC_CHECK();
 
-    if(scene->hasCompoundEyes() && scene->isCompoundEyeActive())
+    if(_scene->hasCompoundEyes() && _scene->isCompoundEyeActive())
     {
         {
             cudaDeviceSynchronize();
@@ -217,7 +219,7 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene*
             }
         } // this is more or less CUDA_SYNC_CHECK();
 
-        CompoundEye* camera = (CompoundEye*) scene->getCamera();
+        CompoundEye* camera = (CompoundEye*) _scene->getCamera();
 
         {
             cudaDeviceSynchronize();
@@ -231,7 +233,7 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene*
             }
         } // this is more or less CUDA_SYNC_CHECK();
 
-        auto csbt = scene->compoundSbt();
+        auto csbt = _scene->compoundSbt();
         // Launch the ommatidial renderer
 #if 0
         std::cout << "Launch with pipeline params: "
@@ -239,7 +241,7 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene*
                   << " of size: " << sizeof( globalParameters::LaunchParams )
                   << std::endl;
 #endif
-        auto cpl = scene->compoundPipeline();
+        auto cpl = _scene->compoundPipeline();
         // std::cout << "pipeline pointer is " << cpl << std::endl;
         auto ole = optixLaunch (cpl,                                 // pipeline
                                 0,                                   // stream
@@ -276,16 +278,16 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene*
     }
 
     // Launch render, but only if *required* as this can add slowness
-    if(scene->enable_render_window == true) {
+    if(_scene->enable_render_window == true) {
         OPTIX_CHECK( optixLaunch(
-                         scene->pipeline(),
+                         _scene->pipeline(),
                          0,             // stream
                          reinterpret_cast<CUdeviceptr>( d_params ),
                          sizeof( globalParameters::LaunchParams ),
-                         scene->sbt(),
+                         _scene->sbt(),
                          width,  // launch width
                          height, // launch height
-                         1//scene->getCamera()->samplesPerPixel // launch depth
+                         1//_scene->getCamera()->samplesPerPixel // launch depth
                          ) );
     }
 
@@ -333,6 +335,7 @@ double renderFrame(void)
     handleCameraUpdate();
 
     auto then = std::chrono::steady_clock::now();
+    std::cout << "In renderFrame() calling launchFrame..." << std::endl;
     launchFrame( outputBuffer, scene );
     CUDA_SYNC_CHECK();
     std::chrono::duration<double, std::milli> render_time = std::chrono::steady_clock::now() - then;
