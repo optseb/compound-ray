@@ -43,48 +43,26 @@
 template <typename T>
 struct BufferView
 {
+    // A pointer to the data
     CUdeviceptr  data            CONST_STATIC_INIT( 0 );
-    uint32_t     elmt_count      CONST_STATIC_INIT( 0 ); // This, confusingly previously
-                                                         // named 'count', is
-                                                         // 'ELEMENT-of-object' count
-                                                         // rather than object count.
-                                                         // if T is float2, then it's
-                                                         // the number of floats (not
-                                                         // the number of float2s).
+    // count of objects of size elmt_byte_size stored in this BufferView
+    uint32_t     count           CONST_STATIC_INIT( 0 );
+    // A byte stride from object to object, which may be greater than elmt_byte_size
     uint16_t     byte_stride     CONST_STATIC_INIT( 0 );
-    uint16_t     elmt_byte_size  CONST_STATIC_INIT( 0 ); // *not* necessarily the same as sizeof(T)
+    // Size of the objects in bytes, might be smaller than T, into which type each object will be placed
+    uint16_t     elmt_byte_size  CONST_STATIC_INIT( 0 );
 
-    SUTIL_HOSTDEVICE bool isValid() const
-    { return static_cast<bool>( data ); }
+    SUTIL_HOSTDEVICE bool isValid() const { return static_cast<bool>( data ); }
 
-    SUTIL_HOSTDEVICE operator bool() const
-    { return isValid(); }
+    SUTIL_HOSTDEVICE operator bool() const { return isValid(); }
 
-    SUTIL_HOSTDEVICE const T& operator[]( uint32_t idx ) const
-    {
-#ifndef __CUDA_ARCH__ // i.e. do the stdout only on the host
-        std::cerr << "BufferView["<<idx<<"] is ptr " << reinterpret_cast<void*>(data)
-                  << " + idx * (byte_stride ? byte_stride : sizeof( T ) ) = "
-                  << (idx * (byte_stride ? byte_stride : sizeof(T)))
-                  << " and elmt_byte_size = " << elmt_byte_size << "/sizeof(T): " << sizeof(T) << std::endl;
-#endif
-        return *reinterpret_cast<T*>(data + idx * actual_stride());
-    }
+    SUTIL_HOSTDEVICE const T& operator[]( uint32_t idx ) const { return *reinterpret_cast<T*>(data + idx * actual_stride()); }
 
     // The stride is either the byte_stride if defined (larger than sizeof(T)) or sizeof(T)
     SUTIL_HOSTDEVICE size_t actual_stride() const { return (byte_stride ? byte_stride : sizeof(T)); }
-    // Return the buffers data size in bytes
-    SUTIL_HOSTDEVICE uint32_t size_bytes() const { return elmt_count * elmt_byte_size; }
-    // Return the count - the object_count of things of type T
-    SUTIL_HOSTDEVICE uint32_t count() const { return size_bytes() / sizeof(T); }
-    // The element size in bytes is actually just a member
-    SUTIL_HOSTDEVICE uint32_t element_size_bytes() const { return elmt_byte_size; }
-    // How many elements in an object?
-    SUTIL_HOSTDEVICE uint32_t object_size_elmts() const { return sizeof(T) / elmt_byte_size; }
-    // Return an object size in bytes. simply sizeof(T)
-    SUTIL_HOSTDEVICE uint32_t object_size_bytes() const { return sizeof(T); }
-    // How many things of type T are there?
-    SUTIL_HOSTDEVICE uint32_t object_count() const { return size_bytes() / sizeof(T); }
+
+    // Return the buffers data consumption in bytes
+    SUTIL_HOSTDEVICE uint32_t size_bytes() const { return count * actual_stride(); }
 };
 
 #ifndef __CUDA_ARCH__ // i.e. do the stdout only on the host
@@ -93,7 +71,7 @@ struct BufferView
 
 namespace cuda
 {
-    // small helper to copy a BufferView to local CPU ram, most likely for debugging
+    // small helper class to copy a BufferView to local CPU ram, most likely for debugging
     template <typename T>
     struct CopiedBufferView
     {
@@ -110,14 +88,14 @@ namespace cuda
             }
 
             this->bv = _bv;
-            this->bv_data.resize (bv.elmt_count);
+            this->bv_data.resize (bv.count);
             void* dst = bv_data.data();
 
-            size_t nbytes = bv.elmt_count * bv.elmt_byte_size;
+            size_t nbytes = bv.count * bv.elmt_byte_size;
 
-            //std::cout << "copy " << nbytes << " bytes from " << reinterpret_cast<void*>(bv.data)
-            //          << " to " << dst << " elmt_byte_size: " << bv.elmt_byte_size
-            //          << " and sizeof(T): " << sizeof(T) << std::endl;
+            std::cout << "copy " << nbytes << " bytes from " << reinterpret_cast<void*>(bv.data)
+                      << " to " << dst << " elmt_byte_size: " << bv.elmt_byte_size
+                      << " and sizeof(T): " << sizeof(T) << std::endl;
             auto mc_rtn = cudaMemcpy (dst, reinterpret_cast<void*>(bv.data), nbytes,  cudaMemcpyDeviceToHost);
             if (mc_rtn) { std::cout << "cudaMemcpy returned error: " << mc_rtn << std::endl; }
         }

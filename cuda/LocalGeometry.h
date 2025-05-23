@@ -90,19 +90,20 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
             if (mesh_data.texcoords)
             {
                 // Either access to tri.x/y/z or indexing texcoords cause the crash
-                if (tri.x < mesh_data.texcoords.object_count()) {
+#if 1
+
+                if (mesh_data.texcoords.isValid() && tri.x < mesh_data.texcoords.count) {
                     UV0 = mesh_data.texcoords[ tri.x ];
                 } else {
                     UV0 = make_float2( 0.0f, 0.0f );
                 }
-                //UV1 = mesh_data.texcoords[ tri.y ];
-                //UV2 = mesh_data.texcoords[ tri.z ];
-
-                // Fallbacks
-                //UV0 = make_float2( 0.0f, 0.0f );
                 UV1 = make_float2( 0.0f, 1.0f );
                 UV2 = make_float2( 1.0f, 0.0f );
-
+#else
+                UV0 = make_float2( 0.0f, 0.0f );
+                UV1 = make_float2( 0.0f, 1.0f );
+                UV2 = make_float2( 1.0f, 0.0f );
+#endif
                 lgeom.UV = ( 1.0f-barys.x-barys.y)*UV0 + barys.x*UV1 + barys.y*UV2;
             }
             else

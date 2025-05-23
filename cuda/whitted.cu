@@ -298,7 +298,7 @@ extern "C" __global__ void __closesthit__radiance()
 
     float3 result = make_float3( 0.0f );
 
-    for( int i = 0; i < params.lights.elmt_count; ++i ) // CHECK would prefer this to be .count()
+    for( int i = 0; i < params.lights.count; ++i )
     {
         Light::Point light = params.lights[i];
 

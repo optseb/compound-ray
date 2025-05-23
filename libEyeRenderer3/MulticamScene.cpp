@@ -86,6 +86,8 @@ namespace
     }
 
     static constexpr bool debug_bufferview = true;
+    static constexpr bool debug_bufferview_byteoffsets = true;
+    static constexpr bool debug_bufferview_full = false;
     /*
      * This function obtains a CUDA BufferView of the data that is associated with the glTF accessor
      * in @model with index @accessor_idx. The glTF accessor provides access to/additional metadata
@@ -101,42 +103,46 @@ namespace
         const tinygltf::Accessor& gltf_accessor      = model.accessors[accessor_idx];
         const tinygltf::BufferView& gltf_buffer_view = model.bufferViews[gltf_accessor.bufferView];
 
-        const int32_t elmt_byte_size = tinygltf::GetComponentSizeInBytes(gltf_accessor.componentType);
+        const int32_t elmt_cmpt_byte_size = tinygltf::GetComponentSizeInBytes(gltf_accessor.componentType);
         const int32_t cmpts_in_type  = tinygltf::GetNumComponentsInType(gltf_accessor.type);
 
-        if constexpr (debug_bufferview) {
-            std::cout << "elmt_byte_size from accessor.componentType: " << elmt_byte_size << std::endl;
+        if constexpr (debug_bufferview_full) {
+            std::cout << "elmt_cmpt_byte_size from accessor.componentType: " << elmt_cmpt_byte_size << std::endl;
             std::cout << "cmpts_in_type from accessor.type: " << cmpts_in_type << std::endl;
             std::cout << "count from accessor: " << gltf_accessor.count << std::endl;
         }
 
-        if (cmpts_in_type == -1 || elmt_byte_size == -1) { throw Exception ("gltf accessor not supported"); }
-        if ((cmpts_in_type * elmt_byte_size) > sizeof(T)) { throw Exception ("bufferViewFromGLTF: sizeof(T) < accessor data type size"); }
+        if (cmpts_in_type == -1 || elmt_cmpt_byte_size == -1) { throw Exception ("gltf accessor not supported"); }
+        if ((cmpts_in_type * elmt_cmpt_byte_size) > sizeof(T)) { throw Exception ("bufferViewFromGLTF: sizeof(T) < accessor data type size"); }
 
         const CUdeviceptr buffer_base = scene.getBuffer (gltf_buffer_view.buffer);
         BufferView<T> buffer_view;
-        if constexpr (debug_bufferview) {
+        if constexpr (debug_bufferview_byteoffsets) {
+            std::cout << "gltf_accessor.byteOffset    = " << gltf_accessor.byteOffset << std::endl;
             std::cout << "gltf_buffer_view.byteOffset = " << gltf_buffer_view.byteOffset << std::endl;
+            std::cout << "gltf_accessor.byteOffset % 16   = " << (gltf_accessor.byteOffset % 16) << std::endl;
+            std::cout << "gltf_buffer_view.byteOffset % 16 = " << (gltf_buffer_view.byteOffset % 16) << std::endl;
         }
         buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset;
-        buffer_view.byte_stride    = static_cast<uint16_t>(gltf_buffer_view.byteStride);
-        // A cuda::BufferView::elmt_count is a count of 'component elements'; for
-        // T=float3 it's count of floats for T=float it's a count of floats.
-        buffer_view.elmt_count     = static_cast<uint32_t>(gltf_accessor.count * cmpts_in_type);
-        buffer_view.elmt_byte_size = static_cast<uint16_t>(elmt_byte_size);
 
-#if 0
-        // OR we could have:
-        buffer_view.count     = static_cast<uint32_t>(gltf_accessor.count);
-        buffer_view.byte_size = static_cast<uint16_t>(elmt_byte_size * cmpts_in_type);
-#endif
+        if constexpr (debug_bufferview_byteoffsets) {
+            std::cout << "data pointer % 16: " << (static_cast<size_t>(buffer_view.data) % 16) << std::endl;
+        }
+
+        buffer_view.byte_stride    = static_cast<uint16_t>(gltf_buffer_view.byteStride);
+        // A cuda::BufferView::count is a count of objects of type T (which is the one that really makes sense)
+        buffer_view.count          = static_cast<uint32_t>(gltf_accessor.count);
+        buffer_view.elmt_byte_size = static_cast<uint16_t>(elmt_cmpt_byte_size * cmpts_in_type);
+
+        // FIXME: We need to consider and possible ADD padding to the buffer. Hang on - when does the data get copied to GPU??
 
         if constexpr (debug_bufferview) {
-            std::cout << "Returning buffer_view with .elmt_count: " << buffer_view.elmt_count
+            std::cout << "Returning buffer_view with .count: " << buffer_view.count
                       << " .elmt_byte_size: " <<  buffer_view.elmt_byte_size
                       << " sizeof(T): " << sizeof(T)
                       << " .byte_stride: " << buffer_view.byte_stride
-                      << " and number of objects: " << buffer_view.object_count()
+                      << " number of objects: " << buffer_view.count
+                      << " consuming: " << buffer_view.size_bytes() << " bytes in RAM"
                       << std::endl;
         }
         return buffer_view;
@@ -410,13 +416,13 @@ namespace
                 mesh->material_idx.push_back( gltf_primitive.material );
                 mesh->transform = node_xform;
                 if constexpr (debug_gltf == true) {
-                    std::cerr << "\t\tNum triangles is indices.elmt_count/3: " << mesh->indices.back().elmt_count / 3 << std::endl;
+                    std::cerr << "\t\tNum triangles is indices.count/3: " << mesh->indices.back().count / 3 << std::endl;
                 }
                 assert( gltf_primitive.attributes.find( "POSITION" ) !=  gltf_primitive.attributes.end() );
                 const int32_t pos_accessor_idx =  gltf_primitive.attributes.at( "POSITION" );
                 mesh->positions.push_back( bufferViewFromGLTF<float3>( model, scene, pos_accessor_idx ) );
                 if constexpr (debug_gltf == true) {
-                    std::cerr << "\t\tNum vertices(positions elmt_count/3): " << mesh->positions.back().elmt_count / 3 << std::endl;
+                    std::cerr << "\t\tNum vertices(positions count/3): " << mesh->positions.back().count / 3 << std::endl;
                 }
 
                 const auto& pos_gltf_accessor = model.accessors[ pos_accessor_idx ];
@@ -456,13 +462,13 @@ namespace
                     if constexpr (debug_gltf == true) {
                         std::cerr << "\t\tHas texcoords: true\n";
                         auto bvv = bufferViewFromGLTF<float2>(model, scene, texcoord_accessor_iter->second);
-                        std::cerr << "\t\ttexcoords elmt_count will be " << bvv.elmt_count << std::endl;
+                        std::cerr << "\t\ttexcoords count will be " << bvv.count << std::endl;
 
                         if (!bvv.data) { std::cerr << "\t\tUh oh, no data pointer in the BufferView..." << std::endl; }
                         cuda::CopiedBufferView<float2> cbv(bvv);
                         float2 c = cbv[0];
                         std::cout << "cbv[0] is " << c.x << "," << c.y << std::endl;
-                        float2 cl = cbv[bvv.object_count()-1];
+                        float2 cl = cbv[bvv.count];
                         std::cout << "cbv[last] is " << cl.x << "," << cl.y << std::endl;
                     }
                     mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, texcoord_accessor_iter->second));
@@ -470,7 +476,7 @@ namespace
                     if constexpr (debug_gltf == true) {
                         std::cerr << "\t\tHas texcoords: false\n";
                         auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
-                        std::cerr << "\t\ttexcoords elmt_count will be " << bvv.elmt_count << std::endl;
+                        std::cerr << "\t\ttexcoords count will be " << bvv.count << std::endl;
                     }
                     mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, -1));
                 }
@@ -896,6 +902,11 @@ void MulticamScene::addBuffer( const uint64_t buf_size, const void* data )
 {
     CUdeviceptr buffer = 0;
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &buffer ), buf_size ) );
+
+    // If you check here, you see that the memory is aligned:
+    //std::cout << "MALLOC Just cudaMalloced a buffer of size " << buf_size
+    //          << " which has address%16: " << (static_cast<size_t>(buffer) % 16) << std::endl;
+
     CUDA_CHECK( cudaMemcpy(
                     reinterpret_cast<void*>( buffer ),
                     data,
@@ -1319,11 +1330,11 @@ void MulticamScene::buildMeshAccels( uint32_t triangle_input_flags )
             triangle_input.type                                  = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
             triangle_input.triangleArray.vertexFormat            = OPTIX_VERTEX_FORMAT_FLOAT3;
             triangle_input.triangleArray.vertexStrideInBytes     = mesh->positions[i].byte_stride ? mesh->positions[i].byte_stride : sizeof(float3),
-            triangle_input.triangleArray.numVertices             = mesh->positions[i].elmt_count;
+            triangle_input.triangleArray.numVertices             = mesh->positions[i].count;
             triangle_input.triangleArray.vertexBuffers           = &(mesh->positions[i].data);
             triangle_input.triangleArray.indexFormat             = mesh->indices[i].elmt_byte_size == 2 ? OPTIX_INDICES_FORMAT_UNSIGNED_SHORT3 : OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
             triangle_input.triangleArray.indexStrideInBytes      = mesh->indices[i].byte_stride ? mesh->indices[i].byte_stride : mesh->indices[i].elmt_byte_size*3;
-            triangle_input.triangleArray.numIndexTriplets        = mesh->indices[i].elmt_count / 3;
+            triangle_input.triangleArray.numIndexTriplets        = mesh->indices[i].count / 3;
             triangle_input.triangleArray.indexBuffer             = mesh->indices[i].data;
             triangle_input.triangleArray.flags                   = &triangle_input_flags;
             triangle_input.triangleArray.numSbtRecords           = 1;

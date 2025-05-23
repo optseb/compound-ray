@@ -145,9 +145,9 @@ void initLaunchParams( const MulticamScene* _scene )
     lights[3].position  = _scene->aabb().center() + make_float3( 1.0f, -6.0f, 0.0f);
     lights[3].falloff   = Light::Falloff::QUADRATIC;
 
-    params->lights.elmt_count  = static_cast<uint32_t>( lights.size() );
+    params->lights.count  = static_cast<uint32_t>( lights.size() );
 
-    std::cout << "initLaunchParams(): params->lights.elmt_count  = " << params->lights.elmt_count << std::endl;
+    std::cout << "initLaunchParams(): params->lights.count  = " << params->lights.count << std::endl;
 
     CUDA_CHECK( cudaMalloc(
                     reinterpret_cast<void**>( &params->lights.data ),

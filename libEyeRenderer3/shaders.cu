@@ -862,7 +862,7 @@ extern "C" __global__ void __closesthit__radiance()
     }
 
     // There are four lights in compound ray apparently, hardcoded in. traceOcclusion for any to get a crash...
-    for (int i = 0; i < params.lights.elmt_count; ++i) { // or .lights.count()
+    for (int i = 0; i < params.lights.count; ++i) { // or .lights.count()
 
         Light::Point light = params.lights[i];
         // TODO: optimize
