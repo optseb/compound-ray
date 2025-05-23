@@ -82,6 +82,7 @@ void context_log_cb( unsigned int level, const char* tag, const char* message, v
 template<typename T>
 BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, Scene& scene, const int32_t accessor_idx )
 {
+    std::cerr << "WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP" << std::endl;
     if( accessor_idx == -1 )
         return BufferView<T>();
 
@@ -100,8 +101,8 @@ BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, Scene& scene, co
     BufferView<T> buffer_view;
     buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset;
     buffer_view.byte_stride    = static_cast<uint16_t>( gltf_buffer_view.byteStride );
-    buffer_view.count          = static_cast<uint32_t>( gltf_accessor.count );
-    buffer_view.elmt_byte_size = static_cast<uint16_t>( elmt_byte_size );
+    buffer_view.elmt_count     = static_cast<uint32_t>( gltf_accessor.count );
+    buffer_view.elmt_byte_size = static_cast<uint16_t>( elmt_byte_size ); // WARNING: WRONG (WHOOP WHOOP) does not account of elements per component
 
     return buffer_view;
 }
@@ -195,7 +196,7 @@ void processGLTFNode(
             mesh->indices.push_back( bufferViewFromGLTF<uint32_t>( model, scene, gltf_primitive.indices ) );
             mesh->material_idx.push_back( gltf_primitive.material );
             mesh->transform = node_xform;
-            std::cerr << "\t\tNum triangles: " << mesh->indices.back().count / 3 << std::endl;
+            std::cerr << "\t\tNum triangles: " << mesh->indices.back().elmt_count / 3 << std::endl;
 
             assert( gltf_primitive.attributes.find( "POSITION" ) !=  gltf_primitive.attributes.end() );
             const int32_t pos_accessor_idx =  gltf_primitive.attributes.at( "POSITION" );
@@ -233,14 +234,15 @@ void processGLTFNode(
             {
                 std::cerr << "\t\tHas texcoords: true\n";
                 auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
-                std::cerr << "\t\ttexcoords count will be " << bvv.count << std::endl;
+                std::cerr << "\t\ttexcoords element count will be " << bvv.elmt_count << std::endl;
+                std::cerr << "\t\ttexcoords object count will be " << bvv.object_count() << std::endl;
                 mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, texcoord_accessor_iter->second ) );
             }
             else
             {
                 std::cerr << "\t\tHas texcoords: false\n";
                 auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
-                std::cerr << "\t\texcoords count will be " << bvv.count << std::endl;
+                std::cerr << "\t\texcoords elmt_count will be " << bvv.elmt_count << std::endl;
                 mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, -1 ) );
             }
         }
@@ -796,7 +798,7 @@ void Scene::buildMeshAccels( uint32_t triangle_input_flags )
                 mesh->positions[i].byte_stride ?
                 mesh->positions[i].byte_stride :
                 sizeof(float3),
-                triangle_input.triangleArray.numVertices             = mesh->positions[i].count;
+                triangle_input.triangleArray.numVertices             = mesh->positions[i].elmt_count;
             triangle_input.triangleArray.vertexBuffers               = &(mesh->positions[i].data);
             triangle_input.triangleArray.indexFormat                 =
                 mesh->indices[i].elmt_byte_size == 2 ?
@@ -806,7 +808,7 @@ void Scene::buildMeshAccels( uint32_t triangle_input_flags )
                 mesh->indices[i].byte_stride ?
                 mesh->indices[i].byte_stride :
                 mesh->indices[i].elmt_byte_size*3;
-            triangle_input.triangleArray.numIndexTriplets            = mesh->indices[i].count / 3;
+            triangle_input.triangleArray.numIndexTriplets            = mesh->indices[i].elmt_count / 3;
             triangle_input.triangleArray.indexBuffer                 = mesh->indices[i].data;
             triangle_input.triangleArray.flags                       = &triangle_input_flags;
             triangle_input.triangleArray.numSbtRecords               = 1;
