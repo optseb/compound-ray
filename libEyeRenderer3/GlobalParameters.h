@@ -56,22 +56,21 @@ enum RayType
 };
 
 
-struct LaunchParams // 88 bytes
+struct LaunchParams
 {
-    uchar4*                  frame_buffer; // 8(?)
-    int32_t                  max_depth;    // 4
+    uchar4*                  frame_buffer;
+    int32_t                  max_depth;
 
-    CUdeviceptr              compoundBufferPtr; // 8 Pointer to an on-device buffer for compound eye handling
-    uint32_t                 compoundBufferWidth; // 4
-    uint32_t                 compoundBufferHeight;// 4
-    uint32_t                 compoundBufferDepth; // 4
-    uint32_t                 frame;               // 4 The current frame
+    CUdeviceptr              compoundBufferPtr;// Pointer to an on-device buffer for compound eye handling
+    uint32_t                 compoundBufferWidth;
+    uint32_t                 compoundBufferHeight;
+    uint32_t                 compoundBufferDepth;
+    uint32_t                 frame;// The current frame
 
-    bool                     lighting;   // 8
-    cuda::BufferView<Light::Point> lights;     // ?
-    float3                   miss_color; // 12
-    OptixTraversableHandle   handle;     // ?
-    size_t                   pad; // 8 to make size up to 96 bytes (makes no difference!)
+    bool                     lighting;
+    cuda::BufferView<Light::Point> lights;
+    float3                   miss_color;
+    OptixTraversableHandle   handle;
 };
 
 
