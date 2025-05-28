@@ -95,9 +95,9 @@ namespace
      * that underlies the BufferViews.
      */
     template<typename T>
-    BufferView<T> bufferViewFromGLTF(const tinygltf::Model& model, MulticamScene& scene, const int32_t accessor_idx)
+    cuda::BufferView<T> bufferViewFromGLTF(const tinygltf::Model& model, MulticamScene& scene, const int32_t accessor_idx)
     {
-        if (accessor_idx == -1) { return BufferView<T>(); }
+        if (accessor_idx == -1) { return cuda::BufferView<T>(); }
 
         const tinygltf::Accessor& gltf_accessor      = model.accessors[accessor_idx];
         const tinygltf::BufferView& gltf_buffer_view = model.bufferViews[gltf_accessor.bufferView];
@@ -115,7 +115,7 @@ namespace
         if ((cmpts_in_type * elmt_cmpt_byte_size) > sizeof(T)) { throw Exception ("bufferViewFromGLTF: sizeof(T) < accessor data type size"); }
 
         const CUdeviceptr buffer_base = scene.getBuffer (gltf_buffer_view.buffer);
-        BufferView<T> buffer_view;
+        cuda::BufferView<T> buffer_view;
         if constexpr (debug_bufferview_byteoffsets) {
             std::cout << "gltf_accessor.byteOffset    = " << gltf_accessor.byteOffset << std::endl;
             std::cout << "gltf_buffer_view.byteOffset = " << gltf_buffer_view.byteOffset << std::endl;

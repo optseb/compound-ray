@@ -80,12 +80,12 @@ void context_log_cb( unsigned int level, const char* tag, const char* message, v
 }
 
 template<typename T>
-BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, Scene& scene, const int32_t accessor_idx )
+cuda::BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, Scene& scene, const int32_t accessor_idx )
 {
     throw Exception ("Scene::bufferViewFromGLTF is disabled (code is wrong, see comment below)");
 
     if( accessor_idx == -1 )
-        return BufferView<T>();
+        return cuda::BufferView<T>();
 
     const auto& gltf_accessor    = model.accessors[ accessor_idx ];
     const auto& gltf_buffer_view = model.bufferViews[ gltf_accessor.bufferView ];
@@ -99,7 +99,7 @@ BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, Scene& scene, co
         throw Exception( "gltf accessor component type not supported" );
 
     const CUdeviceptr buffer_base = scene.getBuffer( gltf_buffer_view.buffer );
-    BufferView<T> buffer_view;
+    cuda::BufferView<T> buffer_view;
     buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset;
     buffer_view.byte_stride    = static_cast<uint16_t>( gltf_buffer_view.byteStride );
     buffer_view.count     = static_cast<uint32_t>( gltf_accessor.count );

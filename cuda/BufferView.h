@@ -32,43 +32,43 @@
 
 #include <stdint.h>
 
-#ifndef __CUDA_ARCH__ // i.e. do the stdout only on the host
-#include <iostream>
-#endif
-
-// A BufferView of things of type T, where T may be a native type like int, float, etc
-// or a type like float3, float2 etc. T should not be some user-defined complex type. If
-// T is float3, then the 'elements' are float if T is float then the elements are float
-// also.
-template <typename T>
-struct BufferView
+namespace cuda
 {
-    // A pointer to the data
-    CUdeviceptr  data            CONST_STATIC_INIT( 0 );
-    // count of objects of size elmt_byte_size stored in this BufferView
-    uint32_t     count           CONST_STATIC_INIT( 0 );
-    // A byte stride from object to object, which may be greater than elmt_byte_size
-    uint16_t     byte_stride     CONST_STATIC_INIT( 0 );
-    // Size of the objects in bytes, might be smaller than T, into which type each object will be placed
-    uint16_t     elmt_byte_size  CONST_STATIC_INIT( 0 );
+    // A BufferView of things of type T, where T may be a native type like int, float, etc or a type
+    // like float3, float2 etc. If T is float3, then the 'elements' are float if T is float then the
+    // elements are float also.
+    template <typename T>
+    struct BufferView
+    {
+        // A pointer to the data
+        CUdeviceptr  data            CONST_STATIC_INIT( 0 );
+        // count of objects of size elmt_byte_size stored in this BufferView
+        uint32_t     count           CONST_STATIC_INIT( 0 );
+        // A byte stride from object to object, which may be greater than elmt_byte_size
+        uint16_t     byte_stride     CONST_STATIC_INIT( 0 );
+        // Size of the objects in bytes, might be smaller than T, into which type each object will be placed
+        uint16_t     elmt_byte_size  CONST_STATIC_INIT( 0 );
 
-    SUTIL_HOSTDEVICE bool isValid() const { return static_cast<bool>( data ); }
+        SUTIL_HOSTDEVICE bool isAligned() const { return (data % OPTIX_SBT_RECORD_ALIGNMENT == 0); }
 
-    SUTIL_HOSTDEVICE bool isAligned() const { return (data % 16 == 0); }
+        SUTIL_HOSTDEVICE bool isValid() const { return static_cast<bool>( data ); }
 
-    SUTIL_HOSTDEVICE operator bool() const { return isValid(); }
+        SUTIL_HOSTDEVICE operator bool() const { return isValid(); }
 
-    SUTIL_HOSTDEVICE const T& operator[]( uint32_t idx ) const { return *reinterpret_cast<T*>(data + idx * actual_stride()); }
+        SUTIL_HOSTDEVICE const T& operator[]( uint32_t idx ) const { return *reinterpret_cast<T*>(data + idx * actual_stride()); }
 
-    // The stride is either the byte_stride if defined (larger than sizeof(T)) or sizeof(T)
-    SUTIL_HOSTDEVICE size_t actual_stride() const { return (byte_stride ? byte_stride : sizeof(T)); }
+        // The stride is either the byte_stride if defined (larger than sizeof(T)) or sizeof(T)
+        SUTIL_HOSTDEVICE size_t actual_stride() const { return (byte_stride ? byte_stride : sizeof(T)); }
 
-    // Return the buffers data consumption in bytes
-    SUTIL_HOSTDEVICE uint32_t size_bytes() const { return count * actual_stride(); }
-};
+        // Return the buffers data consumption in bytes
+        SUTIL_HOSTDEVICE uint32_t size_bytes() const { return count * actual_stride(); }
+    };
 
-#ifndef __CUDA_ARCH__ // i.e. do the stdout only on the host
+} // namespace cuda
+
+#ifndef __CUDA_ARCH__ // compile cuda::CopiedBufferView only for the host
 #include <vector>
+#include <iostream>
 #include <cuda_runtime.h>
 
 namespace cuda
@@ -81,7 +81,7 @@ namespace cuda
 
         std::vector<T> bv_data = {};
 
-        CopiedBufferView (const BufferView<T>& _bv)
+        CopiedBufferView (const cuda::BufferView<T>& _bv)
         {
             // For simplicity don't handle funky byte strides
             if (bv.byte_stride > 0) {

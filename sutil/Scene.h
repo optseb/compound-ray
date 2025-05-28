@@ -57,10 +57,10 @@ public:
         std::string                       name;
         Matrix4x4                         transform;
 
-        std::vector<BufferView<uint32_t> >    indices;
-        std::vector<BufferView<float3> >  positions;
-        std::vector<BufferView<float3> >  normals;
-        std::vector<BufferView<float2> >  texcoords;
+        std::vector<cuda::BufferView<uint32_t> > indices;
+        std::vector<cuda::BufferView<float3> >   positions;
+        std::vector<cuda::BufferView<float3> >   normals;
+        std::vector<cuda::BufferView<float2> >   texcoords;
 
         std::vector<int32_t>              material_idx;
 

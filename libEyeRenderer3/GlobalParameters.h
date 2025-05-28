@@ -68,7 +68,7 @@ struct LaunchParams // 88 bytes
     uint32_t                 frame;               // 4 The current frame
 
     bool                     lighting;   // 8
-    BufferView<Light::Point> lights;     // ?
+    cuda::BufferView<Light::Point> lights;     // ?
     float3                   miss_color; // 12
     OptixTraversableHandle   handle;     // ?
     size_t                   pad; // 8 to make size up to 96 bytes (makes no difference!)

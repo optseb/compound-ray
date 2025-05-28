@@ -80,16 +80,16 @@ public:
         std::string                       name;
         Matrix4x4                         transform;
 
-        std::vector<BufferView<uint32_t>> indices;
-        std::vector<BufferView<float3> >  positions;
-        std::vector<BufferView<float3> >  normals;
-        std::vector<BufferView<float2> >  texcoords;
-        std::vector<BufferView<float3 >>  host_colors_f3;
-        std::vector<BufferView<float4 >>  host_colors_f4;
-        std::vector<BufferView<ushort4>>  host_colors_us4;
-        std::vector<BufferView<uchar4 >>  host_colors_uc4;
-        std::vector<int>                  host_color_types; // -1 = doesn't use vertex colours, 5126 = float4, 5123 = ushort4, 5121 = uchar4
-        int                               host_color_container = -1; // -1 for unknown. 3 for vec3 (and use host_colors_f3)  4 for vec4 (use host_colors_f4 or _us4 or _uc4)
+        std::vector<cuda::BufferView<uint32_t>> indices;
+        std::vector<cuda::BufferView<float3> >  positions;
+        std::vector<cuda::BufferView<float3> >  normals;
+        std::vector<cuda::BufferView<float2> >  texcoords;
+        std::vector<cuda::BufferView<float3 >>  host_colors_f3;
+        std::vector<cuda::BufferView<float4 >>  host_colors_f4;
+        std::vector<cuda::BufferView<ushort4>>  host_colors_us4;
+        std::vector<cuda::BufferView<uchar4 >>  host_colors_uc4;
+        std::vector<int> host_color_types; // -1 = doesn't use vertex colours, 5126 = float4, 5123 = ushort4, 5121 = uchar4
+        int              host_color_container = -1; // -1 for unknown. 3 for vec3 (and use host_colors_f3)  4 for vec4 (use host_colors_f4 or _us4 or _uc4)
 
         std::vector<int32_t>              material_idx;
 
@@ -120,12 +120,12 @@ public:
     ~MulticamScene();// Destructor
 
     // Obtain access to a mesh of positions (to scan over a landscape)
-    const std::vector<BufferView<float3> >* getMeshPositions (size_t idx)
+    const std::vector<cuda::BufferView<float3> >* getMeshPositions (size_t idx)
     {
         if (idx >= this->m_meshes.size()) { return nullptr; }
         return &this->m_meshes[idx]->positions;
     }
-    const std::vector<BufferView<float3> >* getMeshNormals (size_t idx)
+    const std::vector<cuda::BufferView<float3> >* getMeshNormals (size_t idx)
     {
         if (idx >= this->m_meshes.size()) { return nullptr; }
         return &this->m_meshes[idx]->normals;
