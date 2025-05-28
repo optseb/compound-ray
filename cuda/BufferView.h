@@ -76,7 +76,7 @@ namespace cuda
     template <typename T>
     struct CopiedBufferView
     {
-        BufferView<T> bv; // The CUDA buffer view of data
+        cuda::BufferView<T> bv; // The CUDA buffer view of data
 
         std::vector<T> bv_data = {};
 
