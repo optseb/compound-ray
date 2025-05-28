@@ -58,12 +58,11 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-//#include <locale>
 
 namespace
 {
     // Compile time debugging choices
-    static constexpr bool debug_gltf = true;
+    static constexpr bool debug_gltf = false;
     static constexpr bool debug_cameras = false;
     static constexpr bool debug_pipeline = false;
 
@@ -85,8 +84,8 @@ namespace
                   << message << "\n";
     }
 
-    static constexpr bool debug_bufferview = true;
-    static constexpr bool debug_bufferview_byteoffsets = true;
+    static constexpr bool debug_bufferview = false;
+    static constexpr bool debug_bufferview_byteoffsets = false;
     static constexpr bool debug_bufferview_full = false;
     /*
      * This function obtains a CUDA BufferView of the data that is associated with the glTF accessor
@@ -133,8 +132,6 @@ namespace
         // A cuda::BufferView::count is a count of objects of type T (which is the one that really makes sense)
         buffer_view.count          = static_cast<uint32_t>(gltf_accessor.count);
         buffer_view.elmt_byte_size = static_cast<uint16_t>(elmt_cmpt_byte_size * cmpts_in_type);
-
-        // FIXME: We need to consider and possible ADD padding to the buffer. Hang on - when does the data get copied to GPU??
 
         if constexpr (debug_bufferview) {
             std::cout << "Returning buffer_view with .count: " << buffer_view.count
@@ -902,10 +899,6 @@ void MulticamScene::addBuffer( const uint64_t buf_size, const void* data )
 {
     CUdeviceptr buffer = 0;
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &buffer ), buf_size ) );
-
-    // If you check here, you see that the memory is aligned:
-    //std::cout << "MALLOC Just cudaMalloced a buffer of size " << buf_size
-    //          << " which has address%16: " << (static_cast<size_t>(buffer) % 16) << std::endl;
 
     CUDA_CHECK( cudaMemcpy(
                     reinterpret_cast<void*>( buffer ),
@@ -1912,11 +1905,11 @@ void MulticamScene::createSBTmissAndHit(OptixShaderBindingTable& sbt)
                         reinterpret_cast<void**>( &sbt.hitgroupRecordBase ),
                         hitgroup_record_size*hitgroup_records.size()
                         ) );
-        // HERE we're copying those triangle meshes to GPU
+
         CUDA_CHECK( cudaMemcpy(
                         reinterpret_cast<void*>( sbt.hitgroupRecordBase ),
                         hitgroup_records.data(),
-                        hitgroup_record_size * hitgroup_records.size(),
+                        hitgroup_record_size*hitgroup_records.size(),
                         cudaMemcpyHostToDevice
                         ) );
 

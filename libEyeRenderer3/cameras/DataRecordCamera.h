@@ -10,8 +10,8 @@ class DataRecordCamera : public GenericCamera {
 public:
 
     // Compile time choice of debug output in camera code
-    static constexpr bool debug_cameras = true;
-    static constexpr bool debug_memory = true;
+    static constexpr bool debug_cameras = false;
+    static constexpr bool debug_memory = false;
 
     DataRecordCamera(const std::string name) : GenericCamera(name)
     {
@@ -95,35 +95,19 @@ public:
         if(previous_sbtRecordData != sbtRecord.data)
         {
             if constexpr (debug_cameras == true) {
-                std::cout << "ALERT: The following copy was triggered as the sbt record was flagged as changed:" <<std::endl;
+                std::cout << "ALERT: The following copy was triggered as the sbt record was flagged as changed:" << std::endl;
             }
             forcePackAndCopyRecord(programGroup);
-            std::cout << std::endl;
             return true;
         } // else: you'd get a lot of noise cout-ing the else clause
         return false;
     }
 
-    int mycounter = 0;
-
     void forcePackAndCopyRecord(OptixProgramGroup& programGroup)
     {
         // ProgramGroup contains the opaque type OptixModule along with a function pointer.
-        OptixResult rph_res = optixSbtRecordPackHeader (programGroup, reinterpret_cast<void*>(&this->sbtRecord));
-        std::cout << "optixSbtRecordPackHeader PACKED header into &sbtRecord " << &this->sbtRecord
-                  << " with result: " << (int)rph_res <<  std::endl;
-        OPTIX_CHECK (rph_res);
-
-#if 0
-        CUDA_CHECK (cudaMemset (reinterpret_cast<void*>(d_record), 0, sizeof(this->sbtRecord)));
-#else
-        if (mycounter < 149000000) {
-            auto mc_res = cudaMemcpy (reinterpret_cast<void*>(d_record), &sbtRecord, sizeof(this->sbtRecord), cudaMemcpyHostToDevice);
-            std::cout << "cudaMemcpy " << mycounter++ << " to device address " << d_record << " from &sbtRecord " << &this->sbtRecord
-                      << " result: " << (int)mc_res << std::endl;
-            CUDA_CHECK (mc_res);
-        }
-#endif
+        OPTIX_CHECK (optixSbtRecordPackHeader (programGroup, reinterpret_cast<void*>(&this->sbtRecord)));
+        CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(d_record), &sbtRecord, sizeof(this->sbtRecord), cudaMemcpyHostToDevice));
         previous_sbtRecordData = this->sbtRecord.data;
     }
 

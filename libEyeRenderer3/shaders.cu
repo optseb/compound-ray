@@ -774,7 +774,7 @@ extern "C" __global__ void __miss__simple_sky()
 
 //------------------------------------------------------------------------------
 //
-//  Old Hit Programs
+//  Older Hit Programs (still in use)
 //
 //------------------------------------------------------------------------------
 
@@ -782,10 +782,6 @@ extern "C" __global__ void __closesthit__occlusion()
 {
     setPayloadOcclusion( true );
 }
-
-#if 1 // debug radiance hit prog
-
-#define CRASH_PROOFED // Or at least, locn of issue found (LocalGeometry.h)
 
 extern "C" __global__ void __closesthit__radiance()
 {
@@ -796,35 +792,28 @@ extern "C" __global__ void __closesthit__radiance()
     //
     // Retrieve material data
     //
-    float3 base_color = make_float3 (0.0f, 0.0f, 1.0f);
-
-    if (hit_group_data != nullptr) { base_color = make_float3 (1.0f, 0.0f, 0.0f); }
+    float3 base_color = make_float3 (0.0f, 0.0f, 1.0f); // initialize to fully blue
 
     if (geom.UC) {
-        // If 'use color' then it's simple:
+        // If we must 'use color' then we just convert the color specified in geom.C
         base_color = linearize (make_float3 (geom.C.x, geom.C.y, geom.C.z));
-    } else if (hit_group_data != nullptr) {
-        base_color = make_float3 (1.0f, 0.0f, 1.0f); // initial colour
 
-        if (hit_group_data->material_data.pbr.base_color_tex) {
-            cudaTextureObject_t mbc = hit_group_data->material_data.pbr.base_color_tex;
-            if (mbc == 0) {
-                base_color = make_float3 (1.0f, 0.0f, 0.0f);
-            } else {
-#ifdef CRASH_PROOFED
-                float4 my_tex = tex2D<float4> (mbc, geom.UV.x, geom.UV.y); // Having geom.UV.x/y there makes code crashy...
-#else
-                float4 my_tex = tex2D<float4> (mbc, 0, 0);                 // ...but this is ok (?!?)
-#endif
-                float3 my_tex3 = make_float3 (my_tex);
-                base_color = my_tex3;
-            }
+    } else if (hit_group_data != nullptr) {
+        // No 'use color' commandment, but we have hit_group_data
+        base_color = make_float3 (1.0f, 0.0f, 0.0f); // re-initialize to fully red
+
+        cudaTextureObject_t mbc = hit_group_data->material_data.pbr.base_color_tex;
+        if (mbc) {
+            float4 my_tex = tex2D<float4> (mbc, geom.UV.x, geom.UV.y);
+            float3 my_tex3 = make_float3 (my_tex);
+            base_color = my_tex3;
         } else {
-            // This correctly obtains the colour we want when there is no base_color_tex
+            // This obtains the colour we want when there is no base_color_tex
             base_color = make_float3 (hit_group_data->material_data.pbr.base_color);
         }
 
     } else {
+        // No geom.C and no hit_group_data. Set pure green base_color to assist debug
         base_color = make_float3 (0.0f, 1.0f, 0.0f);
         setPayloadResult (base_color);
         return;
@@ -877,107 +866,13 @@ extern "C" __global__ void __closesthit__radiance()
         if (N_dot_L > 0.0f && N_dot_V > 0.0f) {
             const float tmin     = 0.001f;          // TODO
             const float tmax     = L_dist - 0.001f; // TODO
-#ifdef CRASH_PROOFED
             const bool occluded = traceOcclusion (params.handle, geom.P, L, tmin, tmax);
-#else
-            const bool occluded = false;
-#endif
             if (!occluded) {
                 const float3 F     = schlick (spec_color, V_dot_H);
                 const float  G_vis = vis (N_dot_L, N_dot_V, alpha);
                 const float  D     = ggxNormal (N_dot_H, alpha);
                 const float3 diff = (1.0f - F) * diff_color / M_PIf;
                 const float3 spec = F * G_vis * D;
-#ifdef CRASH_PROOFED
-                result += light.color * light.intensity * N_dot_L * (diff + spec);
-#endif
-            }
-        }
-    }
-
-    setPayloadResult (result);
-}
-
-#else
-extern "C" __global__ void __closesthit__radiance()
-{
-    //setPayloadResult( make_float3(1.0f));
-    const globalParameters::HitGroupData* hit_group_data = reinterpret_cast<globalParameters::HitGroupData*>( optixGetSbtDataPointer() );
-    const LocalGeometry          geom           = getLocalGeometry( hit_group_data->geometry_data );
-
-    //
-    // Retrieve material data
-    //
-    float3 base_color = make_float3( hit_group_data->material_data.pbr.base_color );
-
-    if (geom.UC) {
-        base_color = linearize(make_float3(geom.C.x, geom.C.y, geom.C.z));
-    } else if (hit_group_data->material_data.pbr.base_color_tex) {
-        base_color = linearize (make_float3 (tex2D<float4> (hit_group_data->material_data.pbr.base_color_tex, geom.UV.x, geom.UV.y)));
-    }
-
-    if(!params.lighting) {
-        setPayloadResult( base_color);
-        return;
-    }
-
-    float metallic  = hit_group_data->material_data.pbr.metallic;
-    float roughness = hit_group_data->material_data.pbr.roughness;
-    float4 mr_tex = make_float4( 1.0f );
-    if( hit_group_data->material_data.pbr.metallic_roughness_tex ) {
-        // MR tex is (occlusion, roughness, metallic )
-        mr_tex = tex2D<float4> (hit_group_data->material_data.pbr.metallic_roughness_tex, geom.UV.x, geom.UV.y);
-    }
-    roughness *= mr_tex.y;
-    metallic  *= mr_tex.z;
-
-
-    //
-    // Convert to material params
-    //
-    const float  F0         = 0.04f;
-    const float3 diff_color = base_color*( 1.0f - F0 )*( 1.0f - metallic );
-    const float3 spec_color = lerp( make_float3( F0 ), base_color, metallic );
-    const float  alpha      = roughness*roughness;
-
-    //
-    // compute direct lighting
-    //
-
-    float3 N = geom.N;
-    if (hit_group_data->material_data.pbr.normal_tex) {
-        const float4 NN = 2.0f * tex2D<float4> (hit_group_data->material_data.pbr.normal_tex, geom.UV.x, geom.UV.y) - make_float4 (1.0f);
-        N = normalize (NN.x * normalize (geom.dpdu) + NN.y * normalize (geom.dpdv) + NN.z * geom.N);
-    }
-
-    float3 result = make_float3 (0.0f);
-
-    for (int i = 0; i < params.lights.count; ++i) {
-
-        Light::Point light = params.lights[i];
-
-        // TODO: optimize
-        const float  L_dist  = length( light.position - geom.P );
-        const float3 L       = ( light.position - geom.P ) / L_dist;
-        const float3 V       = -normalize( optixGetWorldRayDirection() );
-        const float3 H       = normalize( L + V );
-        const float  N_dot_L = dot( N, L );
-        const float  N_dot_V = dot( N, V );
-        const float  N_dot_H = dot( N, H );
-        const float  V_dot_H = dot( V, H );
-
-        if (N_dot_L > 0.0f && N_dot_V > 0.0f ) {
-            const float tmin     = 0.001f;          // TODO
-            const float tmax     = L_dist - 0.001f; // TODO
-            const bool  occluded = traceOcclusion( params.handle, geom.P, L, tmin, tmax );
-            if (!occluded) {
-                const float3 F     = schlick (spec_color, V_dot_H);
-                const float  G_vis = vis (N_dot_L, N_dot_V, alpha);
-                const float  D     = ggxNormal (N_dot_H, alpha);
-
-                const float3 diff = (1.0f - F) * diff_color / M_PIf;
-                const float3 spec = F * G_vis * D;
-
                 result += light.color * light.intensity * N_dot_L * (diff + spec);
             }
         }
@@ -985,4 +880,3 @@ extern "C" __global__ void __closesthit__radiance()
 
     setPayloadResult (result);
 }
-#endif

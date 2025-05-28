@@ -82,7 +82,8 @@ void context_log_cb( unsigned int level, const char* tag, const char* message, v
 template<typename T>
 BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, Scene& scene, const int32_t accessor_idx )
 {
-    std::cerr << "WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP WHOOP" << std::endl;
+    throw Exception ("Scene::bufferViewFromGLTF is disabled (code is wrong, see comment below)");
+
     if( accessor_idx == -1 )
         return BufferView<T>();
 
@@ -102,7 +103,11 @@ BufferView<T> bufferViewFromGLTF( const tinygltf::Model& model, Scene& scene, co
     buffer_view.data           = buffer_base + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset;
     buffer_view.byte_stride    = static_cast<uint16_t>( gltf_buffer_view.byteStride );
     buffer_view.count     = static_cast<uint32_t>( gltf_accessor.count );
-    buffer_view.elmt_byte_size = static_cast<uint16_t>( elmt_byte_size ); // WARNING: WRONG (WHOOP WHOOP) does not account of elements per component
+    buffer_view.elmt_byte_size = static_cast<uint16_t>( elmt_byte_size ); // WARNING: WRONG does not
+                                                                          // take account of
+                                                                          // elements per
+                                                                          // component. See
+                                                                          // MulticamScene::bufferViewFromGLTF
 
     return buffer_view;
 }
@@ -233,15 +238,11 @@ void processGLTFNode(
             if( texcoord_accessor_iter  !=  gltf_primitive.attributes.end() )
             {
                 std::cerr << "\t\tHas texcoords: true\n";
-                auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
-                std::cerr << "\t\ttexcoords count will be " << bvv.count << std::endl;
                 mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, texcoord_accessor_iter->second ) );
             }
             else
             {
                 std::cerr << "\t\tHas texcoords: false\n";
-                auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
-                std::cerr << "\t\texcoords count will be " << bvv.count << std::endl;
                 mesh->texcoords.push_back( bufferViewFromGLTF<float2>( model, scene, -1 ) );
             }
         }
