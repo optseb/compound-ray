@@ -415,8 +415,8 @@ set (glad_target glad)
 set (imgui_target imgui)
 set (sutil_target sutil_7_sdk)
 
-# Extra link for cuda toolkit in /usr/local
-link_directories(/usr/local/cuda-12.1/lib64)
+# Extra link for your cuda toolkit in /usr/local
+link_directories(/usr/local/cuda/lib64)
 
 # add_subdirectory() for sutil, support and cuda should come before libEyeRenderer3
 #
