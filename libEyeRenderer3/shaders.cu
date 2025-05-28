@@ -131,52 +131,45 @@ static __forceinline__ __device__ void traceRadiance(
      payload->depth    = u3;
 }
 
-static __forceinline__ __device__ bool traceOcclusion(
-        OptixTraversableHandle handle,
-        float3                 ray_origin,
-        float3                 ray_direction,
-        float                  tmin,
-        float                  tmax
-        )
+static __forceinline__ __device__ bool traceOcclusion (OptixTraversableHandle handle,
+                                                       float3 ray_origin, float3 ray_direction,
+                                                       float tmin, float tmax)
 {
     uint32_t occluded = 0u;
-    optixTrace(
-            handle,
-            ray_origin,
-            ray_direction,
-            tmin,
-            tmax,
-            0.0f,                    // rayTime
-            OptixVisibilityMask( 1 ),
-            OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
-            globalParameters::RAY_TYPE_OCCLUSION,      // SBT offset
-            globalParameters::RAY_TYPE_COUNT,          // SBT stride
-            globalParameters::RAY_TYPE_OCCLUSION,      // missSBTIndex
-            occluded );
+    optixTrace (handle,
+                ray_origin,
+                ray_direction,
+                tmin,
+                tmax,
+                0.0f,                                  // rayTime
+                OptixVisibilityMask(1),
+                OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
+                globalParameters::RAY_TYPE_OCCLUSION,  // SBT offset
+                globalParameters::RAY_TYPE_COUNT,      // SBT stride
+                globalParameters::RAY_TYPE_OCCLUSION,  // missSBTIndex
+                occluded);
     return occluded;
 }
 
-__forceinline__ __device__ void setPayloadResult( float3 p )
+__forceinline__ __device__ void setPayloadResult (float3 p)
 {
-    optixSetPayload_0( __float_as_int( p.x ) );
-    optixSetPayload_1( __float_as_int( p.y ) );
-    optixSetPayload_2( __float_as_int( p.z ) );
+    optixSetPayload_0 (__float_as_int (p.x));
+    optixSetPayload_1 (__float_as_int (p.y));
+    optixSetPayload_2 (__float_as_int (p.z));
 }
 
-__forceinline__ __device__ void setPayloadOcclusion( bool occluded )
+__forceinline__ __device__ void setPayloadOcclusion (bool occluded)
 {
-    optixSetPayload_0( static_cast<uint32_t>( occluded ) );
+    optixSetPayload_0 (static_cast<uint32_t>(occluded));
 }
 
-__forceinline__ __device__ uchar4 make_color( const float3&  c )
+__forceinline__ __device__ uchar4 make_color (const float3& c)
 {
     const float gamma = 2.2f;
-    return make_uchar4(
-            static_cast<uint8_t>( powf( clamp( c.x, 0.0f, 1.0f ), 1.0/gamma )*255.0f ),
-            static_cast<uint8_t>( powf( clamp( c.y, 0.0f, 1.0f ), 1.0/gamma )*255.0f ),
-            static_cast<uint8_t>( powf( clamp( c.z, 0.0f, 1.0f ), 1.0/gamma )*255.0f ),
-            255u
-            );
+    return make_uchar4 (static_cast<uint8_t>( powf( clamp( c.x, 0.0f, 1.0f ), 1.0f / gamma ) * 255.0f ),
+                        static_cast<uint8_t>( powf( clamp( c.y, 0.0f, 1.0f ), 1.0f / gamma ) * 255.0f ),
+                        static_cast<uint8_t>( powf( clamp( c.z, 0.0f, 1.0f ), 1.0f / gamma ) * 255.0f ),
+                        255u);
 }
 
 //------------------------------------------------------------------------------
@@ -197,23 +190,23 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
 //
 //------------------------------------------------------------------------------
 
-__device__ inline float3 rotatePoint(const float3 point, const float angle, const float3 axis)
+__device__ inline float3 rotatePoint (const float3 point, const float angle, const float3 axis)
 {
-  return (cos(angle)*point + sin(angle)*cross(axis, point) + (1 - cos(angle))*dot(axis, point)*axis);
+  return (cos(angle) * point + sin(angle) * cross(axis, point) + (1 - cos(angle)) * dot(axis, point) * axis);
 }
-__device__ float3 generateOffsetRay( const float ommatidialAxisAngle, const float splayAngle, const float3 ommatidialAxis)
+__device__ float3 generateOffsetRay (const float ommatidialAxisAngle, const float splayAngle, const float3 ommatidialAxis)
 {
-    //// Rotate the ommatidial axis about a perpendicular vector by splay angle
-    float3 perpAxis = cross(make_float3(0.0f, 1.0f, 0.0f), ommatidialAxis);
+    // Rotate the ommatidial axis about a perpendicular vector by splay angle
+    float3 perpAxis = cross (make_float3(0.0f, 1.0f, 0.0f), ommatidialAxis);
     // Check that the perpAxis isn't zero (because ommatidialAxis was pointing directly up) (could probably be done with a memcmp for speed)
     perpAxis = (perpAxis.x + perpAxis.y + perpAxis.z == 0.0f) ? make_float3(0.0f, 0.0f, 1.0f) : normalize(perpAxis);
     // Rotate by the splay angle
-    const float3 splayedAxis = rotatePoint(ommatidialAxis, splayAngle, perpAxis);
-    //// Rotate the new axis around the original ommatidial axis by the ommatidialAxisAngle
-    return rotatePoint(splayedAxis, ommatidialAxisAngle, ommatidialAxis);
+    const float3 splayedAxis = rotatePoint (ommatidialAxis, splayAngle, perpAxis);
+    // Rotate the new axis around the original ommatidial axis by the ommatidialAxisAngle
+    return rotatePoint (splayedAxis, ommatidialAxisAngle, ommatidialAxis);
 }
 
-// The key raygen program?
+// The key raygen program
 extern "C" __global__ void __raygen__ommatidium()
 {
     const uint3 launch_idx = optixGetLaunchIndex();
@@ -221,35 +214,45 @@ extern "C" __global__ void __raygen__ommatidium()
     const uint32_t ommatidialIndex = launch_idx.x;
     const int id = launch_dims.x * launch_idx.y + launch_idx.x;
 
-    const RecordPointer* recordPointer = (RecordPointer*)optixGetSbtDataPointer();// Gets the compound record, which points to the current camera's record.
+    // Gets the compound record, which points to the current camera's record.
+    const RecordPointer* recordPointer = (RecordPointer*)optixGetSbtDataPointer();
 
-    const RaygenPosedContainer<CompoundEyeData> posedData = ((RaygenRecord<RaygenPosedContainer<CompoundEyeData>>*)(recordPointer->d_record))->data; // Contains the actual posed eye data
+    // Contains the actual posed eye data
+    const RaygenPosedContainer<CompoundEyeData> posedData = ((RaygenRecord<RaygenPosedContainer<CompoundEyeData>>*)(recordPointer->d_record))->data;
 
-    Ommatidium* allOmmatidia = (Ommatidium*)(posedData.specializedData.d_ommatidialArray);// List of all ommatidia
-    Ommatidium ommatidium = *(allOmmatidia + ommatidialIndex);// This ommatidium
+    // A list of all ommatidia
+    Ommatidium* allOmmatidia = (Ommatidium*)(posedData.specializedData.d_ommatidialArray);
+    // This ommatidium
+    Ommatidium ommatidium = *(allOmmatidia + ommatidialIndex);
 
     // Get the relative direction of the ommatidial axis
     const float3 relativeOmmatidialAxis = ommatidium.relativeDirection;
     const float3 relativeOmmatidialPosition = ommatidium.relativePosition;
 
-    curandState localState; // A local copy of the cuRand state (to be) stored in shared memory
-    curandState& sharedState = ((curandState*)(posedData.specializedData.d_randomStates))[id]; // A reference to the original cuRand state stored in shared memory
+    // A local copy of the cuRand state (to be) stored in shared memory
+    curandState localState;
+    // A reference to the original cuRand state stored in shared memory:
+    curandState& sharedState = ((curandState*)(posedData.specializedData.d_randomStates))[id];
+
     if (!posedData.specializedData.randomsConfigured) {
-        curand_init(42, id, 0, &localState); // Initialize the state if it needs to be
+        curand_init (42, id, 0, &localState); // Initialize the state if it needs to be
     } else {
         localState = sharedState; // Pull down the random state of this ommatidium
     }
 
     // Calculate the s.d. to scale a standard normal random value up to so that it matches the acceptance angle
     const float standardDeviation = ommatidium.acceptanceAngleRadians/FWHM_SD_RATIO;
-    float splayAngle = curand_normal(&localState) * standardDeviation;// Angle away from the ommatidial axis
-    float ommatidialAxisAngle = curand_uniform(&localState)*M_PIf;// Angle around the ommatidial axis (note that it only needs to rotate through 180 degrees because splayAngle can be negative)
+    // Angle away from the ommatidial axis
+    float splayAngle = curand_normal(&localState) * standardDeviation;
+    // Angle around the ommatidial axis (note that it only needs to rotate through 180 degrees
+    // because splayAngle can be negative)
+    float ommatidialAxisAngle = curand_uniform(&localState)*M_PIf;
 
     // Copy the RNG state back into the buffer for use next time
     sharedState = localState;
 
     // Generate a pair of angles away from the ommatidial axis
-    const float3 relativeDir = generateOffsetRay(ommatidialAxisAngle, splayAngle, relativeOmmatidialAxis);
+    const float3 relativeDir = generateOffsetRay (ommatidialAxisAngle, splayAngle, relativeOmmatidialAxis);
 
     // Move the start of the ray into the eye along the ommatidial axis by focalPointOffset
     const float3 relativePos = relativeOmmatidialPosition - normalize(relativeOmmatidialAxis) * ommatidium.focalPointOffset;
@@ -276,10 +279,14 @@ extern "C" __global__ void __raygen__ommatidium()
                    &payload);
 
     // Add results to this eye's compound buffer
-    // This mixes in the feedback from each sample ray with respect to the it's position in the rendering volume.
-    // For instance, if each ommatidium is to make 20 samples then each launch of this shader is one sample and only
-    // contributes 0.05/1 to the final colour in the compound buffer.
-    ((float3*)posedData.specializedData.d_compoundBuffer)[id] = payload.result * (1.0f/posedData.specializedData.samplesPerOmmatidium); // Scale it down as these will be summed in the projection shader
+    //
+    // This mixes in the feedback from each sample ray with respect to the it's position in the
+    // rendering volume.  For instance, if each ommatidium is to make 20 samples then each launch of
+    // this shader is one sample and only contributes 0.05/1 to the final colour in the compound
+    // buffer.
+    //
+    // (Scale it down as these will be summed in the projection shader)
+    ((float3*)posedData.specializedData.d_compoundBuffer)[id] = payload.result * (1.0f/posedData.specializedData.samplesPerOmmatidium);
     // end atomic stuff
 }
 
@@ -322,13 +329,14 @@ extern "C" __global__ void __closesthit__occlusion() { setPayloadOcclusion(true)
 
 extern "C" __global__ void __closesthit__radiance()
 {
-    float3 result = make_float3( 0.0f );
+    float3 result = make_float3 (0.0f);
     const globalParameters::HitGroupData* hit_group_data = reinterpret_cast<globalParameters::HitGroupData*>(optixGetSbtDataPointer());
     const LocalGeometry geom = getLocalGeometry (hit_group_data->geometry_data);
 
-    //
-    // Retrieve material data
-    //
+    /*
+     * Retrieve material data
+     */
+
     float3 base_color = make_float3 (0.0f, 0.0f, 1.0f); // initialize to fully blue
 
     if (geom.UC) {
@@ -371,16 +379,20 @@ extern "C" __global__ void __closesthit__radiance()
     }
     roughness *= mr_tex.y;
     metallic  *= mr_tex.z;
-    //
-    // Convert to material params
-    //
+
+    /*
+     * Convert to material params
+     */
+
     const float  F0         = 0.04f;
     const float3 diff_color = base_color * (1.0f - F0) * (1.0f - metallic);
     const float3 spec_color = lerp (make_float3 (F0), base_color, metallic);
     const float  alpha      = roughness * roughness;
-    //
-    // compute direct lighting
-    //
+
+    /*
+     * compute direct lighting
+     */
+
     float3 N = geom.N;
     if (hit_group_data->material_data.pbr.normal_tex) {
         const float4 NN = 2.0f * tex2D<float4> (hit_group_data->material_data.pbr.normal_tex, geom.UV.x, geom.UV.y) - make_float4 (1.0f);
@@ -401,15 +413,15 @@ extern "C" __global__ void __closesthit__radiance()
         const float  N_dot_H = dot(N, H);
         const float  V_dot_H = dot(V, H);
         if (N_dot_L > 0.0f && N_dot_V > 0.0f) {
-            const float tmin     = 0.001f;          // TODO
-            const float tmax     = L_dist - 0.001f; // TODO
+            const float tmin    = 0.001f;          // TODO
+            const float tmax    = L_dist - 0.001f; // TODO
             const bool occluded = traceOcclusion (params.handle, geom.P, L, tmin, tmax);
             if (!occluded) {
                 const float3 F     = schlick (spec_color, V_dot_H);
                 const float  G_vis = vis (N_dot_L, N_dot_V, alpha);
                 const float  D     = ggxNormal (N_dot_H, alpha);
-                const float3 diff = (1.0f - F) * diff_color / M_PIf;
-                const float3 spec = F * G_vis * D;
+                const float3 diff  = (1.0f - F) * diff_color / M_PIf;
+                const float3 spec  = F * G_vis * D;
                 result += light.color * light.intensity * N_dot_L * (diff + spec);
             }
         }
