@@ -170,8 +170,6 @@ void initLaunchParams( const MulticamScene* _scene )
 // Updates the params to acurately reflect the currently selected camera
 void handleCameraUpdate()
 {
-    //GenericCamera* camera  = scene->getCamera();
-
     // Make sure the SBT of the scene is updated for the newly selected camera before launch,
     // also push any changed host-side camera SBT data over to the device.
     scene->reconfigureSBTforCurrentCamera(false);
@@ -181,9 +179,9 @@ void handleCameraUpdate()
 void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene* _scene )
 {
     uchar4* result_buffer_data = output_buffer->map();
-    params->frame_buffer        = result_buffer_data;
+    params->frame_buffer       = result_buffer_data;
 
-    // d_params is a global pointer
+    // d_params is a global pointer to GPU RAM, params is a global pointer to CPU-side RAM
     CUDA_CHECK( cudaMemcpyAsync( reinterpret_cast<void*>( d_params ),
                                  params,
                                  sizeof( globalParameters::LaunchParams ),
@@ -191,56 +189,13 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene*
                                  0 // stream
                     ) );
 
-    {
-        cudaDeviceSynchronize();
-        cudaError_t error = cudaGetLastError();
-        if (error != cudaSuccess) {
-            std::stringstream ss;
-            ss << "POST async memcpy CUDA error on synchronize with error " << (int)error << " '"
-               << cudaGetErrorString (error)
-               << "' (" __FILE__ << ":" << __LINE__ << ")\n";
-            throw sutil::Exception (ss.str().c_str());
-        }
-    } // this is more or less CUDA_SYNC_CHECK();
-
     if(_scene->hasCompoundEyes() && _scene->isCompoundEyeActive())
     {
-        {
-            cudaDeviceSynchronize();
-            cudaError_t error = cudaGetLastError();
-            if (error != cudaSuccess) {
-                std::stringstream ss;
-                ss << "PRE CUDA error on synchronize with error " << (int)error << " '"
-                   << cudaGetErrorString (error)
-                   << "' (" __FILE__ << ":" << __LINE__ << ")\n";
-                throw sutil::Exception (ss.str().c_str());
-            }
-        } // this is more or less CUDA_SYNC_CHECK();
-
         CompoundEye* camera = (CompoundEye*) _scene->getCamera();
-
-        {
-            cudaDeviceSynchronize();
-            cudaError_t error = cudaGetLastError();
-            if (error != cudaSuccess) {
-                std::stringstream ss;
-                ss << "PRE2 CUDA error on synchronize with error " << (int)error << " '"
-                   << cudaGetErrorString (error)
-                   << "' (" __FILE__ << ":" << __LINE__ << ")\n";
-                throw sutil::Exception (ss.str().c_str());
-            }
-        } // this is more or less CUDA_SYNC_CHECK();
 
         auto csbt = _scene->compoundSbt();
         // Launch the ommatidial renderer
-#if 0
-        std::cout << "Launch with pipeline params: "
-                  << ((long long int)d_params)
-                  << " of size: " << sizeof( globalParameters::LaunchParams )
-                  << std::endl;
-#endif
         auto cpl = _scene->compoundPipeline();
-        // std::cout << "pipeline pointer is " << cpl << std::endl;
         auto ole = optixLaunch (cpl,                                 // pipeline
                                 0,                                   // stream
                                 reinterpret_cast<CUdeviceptr>( d_params ), // pipelineParams
@@ -258,7 +213,7 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene*
             cudaError_t error = cudaGetLastError();
             if (error != cudaSuccess) {
                 std::stringstream ss;
-                ss << "SPECIAL CUDA error on synchronize with error " << (int)error << " '"
+                ss << "Post-launch CUDA error on synchronize with error " << (int)error << " '"
                    << cudaGetErrorString (error)
                    << "' (" __FILE__ << ":" << __LINE__ << ")\n";
                 throw sutil::Exception (ss.str().c_str());
@@ -313,7 +268,7 @@ void setVerbosity(bool v)
 }
 void loadGlTFscene(const char* filepath)
 {
-    loadScene(filepath, *scene); // From Scene.h
+    loadScene(filepath, *scene);
     scene->finalize();
     initLaunchParams (scene);
 }

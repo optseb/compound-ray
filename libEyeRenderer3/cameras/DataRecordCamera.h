@@ -95,7 +95,7 @@ public:
         if(previous_sbtRecordData != sbtRecord.data)
         {
             if constexpr (debug_cameras == true) {
-                std::cout << "ALERT: The following copy was triggered as the sbt record was flagged as changed:" << std::endl;
+                std::cout << "ALERT: The following copy was triggered as the sbt record was flagged as changed:" <<std::endl;
             }
             forcePackAndCopyRecord(programGroup);
             return true;
@@ -105,6 +105,10 @@ public:
 
     void forcePackAndCopyRecord(OptixProgramGroup& programGroup)
     {
+        if constexpr (debug_cameras == true) {
+            std::cout<< "Copying device memory for camera '"<<getCameraName()<<"'."<<std::endl;
+        }
+
         // ProgramGroup contains the opaque type OptixModule along with a function pointer.
         OPTIX_CHECK (optixSbtRecordPackHeader (programGroup, reinterpret_cast<void*>(&this->sbtRecord)));
         CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(d_record), &sbtRecord, sizeof(this->sbtRecord), cudaMemcpyHostToDevice));
