@@ -106,14 +106,12 @@ bool notificationsActive = true;
 
 void multicamAlloc()
 {
-    std::cout << __func__ << " called" << std::endl;
     scene = new MulticamScene{};
     params = new globalParameters::LaunchParams{};
     outputBuffer = new sutil::CUDAOutputBuffer<uchar4>(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
 }
 void multicamDealloc()
 {
-    std::cout << __func__ << " called" << std::endl;
     delete outputBuffer;
     delete params;
     delete scene;
