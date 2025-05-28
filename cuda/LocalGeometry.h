@@ -87,27 +87,30 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
 
             // Set UV texture coordinates
             float2 UV0, UV1, UV2;
-            if (mesh_data.texcoords)
-            {
-                // Either access to tri.x/y/z or indexing texcoords cause the crash
-#if 1
-
-                if (mesh_data.texcoords.isValid() && tri.x < mesh_data.texcoords.count) {
+            if (mesh_data.texcoords && mesh_data.texcoords.isValid() && mesh_data.texcoords.isAligned()) {
+                // .isAligned() test prevents a possible crash due to misalignment in the glTF, but
+                // also means the texcoords aren't accessible.
+                if (tri.x < mesh_data.texcoords.count) {
                     UV0 = mesh_data.texcoords[ tri.x ];
                 } else {
-                    UV0 = make_float2( 0.0f, 0.0f );
+                    UV0 = make_float2 (0.0f, 0.0f);
                 }
-                UV1 = make_float2( 0.0f, 1.0f );
-                UV2 = make_float2( 1.0f, 0.0f );
-#else
-                UV0 = make_float2( 0.0f, 0.0f );
-                UV1 = make_float2( 0.0f, 1.0f );
-                UV2 = make_float2( 1.0f, 0.0f );
-#endif
+
+                if (tri.y < mesh_data.texcoords.count) {
+                    UV1 = mesh_data.texcoords[ tri.y ];
+                } else {
+                    UV1 = make_float2 (0.0f, 1.0f);
+                }
+
+                if (tri.z < mesh_data.texcoords.count) {
+                    UV2 = mesh_data.texcoords[ tri.z ];
+                } else {
+                    UV2 = make_float2 (1.0f, 0.0f);
+                }
+
                 lgeom.UV = ( 1.0f-barys.x-barys.y)*UV0 + barys.x*UV1 + barys.y*UV2;
-            }
-            else
-            {
+
+            } else {
                 UV0 = make_float2( 0.0f, 0.0f );
                 UV1 = make_float2( 0.0f, 1.0f );
                 UV2 = make_float2( 1.0f, 0.0f );

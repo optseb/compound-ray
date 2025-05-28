@@ -54,6 +54,8 @@ struct BufferView
 
     SUTIL_HOSTDEVICE bool isValid() const { return static_cast<bool>( data ); }
 
+    SUTIL_HOSTDEVICE bool isAligned() const { return (data % 16 == 0); }
+
     SUTIL_HOSTDEVICE operator bool() const { return isValid(); }
 
     SUTIL_HOSTDEVICE const T& operator[]( uint32_t idx ) const { return *reinterpret_cast<T*>(data + idx * actual_stride()); }
