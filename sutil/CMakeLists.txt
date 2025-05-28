@@ -48,8 +48,6 @@ set(sources
     Preprocessor.h
     Quaternion.h
     Record.h
-    Scene.cpp
-    Scene.h
     sutilapi.h
     sutil.cpp
     sutil.h
@@ -114,6 +112,6 @@ set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
 # Install headers
 install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h GLDisplay.h
         hitscanprocessing.h Matrix.h PPMLoader.h Preprocessor.h
-        Quaternion.h Record.h Scene.h sutilapi.h sutil.h Trackball.h vec_math.h
+        Quaternion.h Record.h sutilapi.h sutil.h Trackball.h vec_math.h
         WorkDistribution.h
         DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/compound-ray/sutil)
