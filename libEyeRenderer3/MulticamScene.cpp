@@ -62,7 +62,7 @@
 namespace
 {
     // Compile time debugging choices
-    static constexpr bool debug_gltf = false;
+    static constexpr bool debug_gltf = true;
     static constexpr bool debug_cameras = false;
     static constexpr bool debug_pipeline = false;
 
@@ -456,25 +456,10 @@ namespace
                 auto texcoord_accessor_iter = gltf_primitive.attributes.find( "TEXCOORD_0" ) ;
 
                 if (texcoord_accessor_iter != gltf_primitive.attributes.end()) {
-                    if constexpr (debug_gltf == true) {
-                        std::cerr << "\t\tHas texcoords: true\n";
-                        auto bvv = bufferViewFromGLTF<float2>(model, scene, texcoord_accessor_iter->second);
-                        std::cerr << "\t\ttexcoords count will be " << bvv.count << std::endl;
-
-                        if (!bvv.data) { std::cerr << "\t\tUh oh, no data pointer in the BufferView..." << std::endl; }
-                        cuda::CopiedBufferView<float2> cbv(bvv);
-                        float2 c = cbv[0];
-                        std::cout << "cbv[0] is " << c.x << "," << c.y << std::endl;
-                        float2 cl = cbv[bvv.count];
-                        std::cout << "cbv[last] is " << cl.x << "," << cl.y << std::endl;
-                    }
+                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas texcoords: true\n"; }
                     mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, texcoord_accessor_iter->second));
                 } else {
-                    if constexpr (debug_gltf == true) {
-                        std::cerr << "\t\tHas texcoords: false\n";
-                        auto bvv = bufferViewFromGLTF<float2>(model, scene, -1);
-                        std::cerr << "\t\ttexcoords count will be " << bvv.count << std::endl;
-                    }
+                    if constexpr (debug_gltf == true) { std::cerr << "\t\tHas texcoords: false\n"; }
                     mesh->texcoords.push_back (bufferViewFromGLTF<float2> (model, scene, -1));
                 }
 

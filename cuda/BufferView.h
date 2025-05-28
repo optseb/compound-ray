@@ -85,7 +85,7 @@ namespace cuda
         {
             // For simplicity don't handle funky byte strides
             if (bv.byte_stride > 0) {
-                std::cerr << "Don't handle byte_stride > 0" << std::endl;
+                std::cerr << "CopiedBufferView: Don't currently handle byte_stride > 0" << std::endl;
                 return;
             }
 
@@ -95,11 +95,8 @@ namespace cuda
 
             size_t nbytes = bv.count * bv.elmt_byte_size;
 
-            std::cout << "copy " << nbytes << " bytes from " << reinterpret_cast<void*>(bv.data)
-                      << " to " << dst << " elmt_byte_size: " << bv.elmt_byte_size
-                      << " and sizeof(T): " << sizeof(T) << std::endl;
             auto mc_rtn = cudaMemcpy (dst, reinterpret_cast<void*>(bv.data), nbytes,  cudaMemcpyDeviceToHost);
-            if (mc_rtn) { std::cout << "cudaMemcpy returned error: " << mc_rtn << std::endl; }
+            if (mc_rtn) { std::cerr << "CopiedBufferView: cudaMemcpy returned error: " << mc_rtn << std::endl; }
         }
 
         const T operator[]( uint32_t idx ) const
