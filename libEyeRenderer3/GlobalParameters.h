@@ -58,7 +58,7 @@ enum RayType
 
 struct LaunchParams
 {
-//    uchar4*                  frame_buffer; // Gone, no longer do any OpenGL here
+    uchar4*                  frame_buffer; // An output buffer for non-compound eye cameras
     int32_t                  max_depth;
 
     CUdeviceptr              compoundBufferPtr;// Pointer to an on-device buffer for compound eye handling

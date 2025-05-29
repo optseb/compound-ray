@@ -260,7 +260,7 @@ void CompoundEye::freeCompoundRenderingAvgBuffer()
     if(specializedData.d_compoundAvgBuffer != 0)
     {
         CUDA_CHECK( cudaFree(reinterpret_cast<void*>(specializedData.d_compoundAvgBuffer)) );
-        specializedData.d_compoundAvgBuffer= 0;
+        specializedData.d_compoundAvgBuffer = 0;
         if constexpr (debug_memory == true) { std::cout << "buffer freed!" << std::endl; }
     } else {
         if constexpr (debug_memory == true) { std::cout << "buffer already free, skipping." << std::endl; }

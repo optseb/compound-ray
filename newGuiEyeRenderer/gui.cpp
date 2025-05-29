@@ -44,7 +44,7 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
         int csamp = getCurrentEyeSamplesPerOmmatidium();
         changeCurrentEyeSamplesPerOmmatidiumBy(-(csamp/2)); // halve
       }else if(key == GLFW_KEY_C){
-        saveFrameAs("output.ppm");
+          saveFrameAs("output.ppm");
       }
 
       dirtyUI = true;
@@ -65,6 +65,11 @@ void printHelp()
   std::cout << "USAGE:\nnewGuiEyeRenderer -f <path to gltf scene>" << std::endl << std::endl;
   std::cout << "\t-h\tDisplay this help information." << std::endl;
   std::cout << "\t-f\tPath to a gltf scene file (absolute or relative to current working directory, e.g. './natural-standin-sky.gltf')." << std::endl;
+}
+
+void displayFrame()
+{
+    // Place outputBuffer in a GL window and render
 }
 
 int main( int argc, char* argv[] )
@@ -95,7 +100,7 @@ int main( int argc, char* argv[] )
   }
 
   // Grab a pointer to the window
-  GLFWwindow* window = (GLFWwindow*)(getWindowPointer());
+  GLFWwindow* window = (GLFWwindow*)make_a_window(); // should become local
 
   // Attach callbacks
   glfwSetKeyCallback        (window, keyCallback       );
@@ -137,7 +142,9 @@ int main( int argc, char* argv[] )
       if(dirtyUI || isCompoundEyeActive())
       {
         renderFrame();
-        displayFrame();
+
+        displayFrame(); // should become local code
+
         dirtyUI = false; // Comment this out to force constant re-rendering
       }
 

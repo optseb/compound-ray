@@ -28,10 +28,7 @@
 
 #include "libEyeRenderer.h"
 
-#include <glad/glad.h> // Needs to be included before gl_interop
-
 #include <cuda_runtime.h>
-#include <cuda_gl_interop.h>
 
 #include <optix.h>
 #include <optix_stubs.h>
@@ -50,8 +47,6 @@
 #include "MulticamScene.h"
 #include "GlobalParameters.h"
 #include "cameras/CompoundEyeDataTypes.h"
-
-#include <GLFW/glfw3.h>
 
 #include <array>
 #include <cstring>
@@ -92,22 +87,31 @@ MulticamScene* scene;
 globalParameters::LaunchParams*  d_params = nullptr;
 globalParameters::LaunchParams*  params = nullptr; // hostside now
 
+// An output buffer used by non-compound eye cameras
+sutil::CUDAOutputBuffer<uchar4>* outputBuffer = nullptr;
+// The width and height of the output buffer
+int32_t width = 0;
+int32_t height = 0;
+
 bool notificationsActive = true;
 
 void multicamAlloc()
 {
+    outputBuffer = new sutil::CUDAOutputBuffer<uchar4>(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
     scene = new MulticamScene{};
     params = new globalParameters::LaunchParams{};
 }
 
 void multicamDealloc()
 {
+    if (outputBuffer) { delete outputBuffer; }
     delete params;
     delete scene;
 }
 
 void initLaunchParams( const MulticamScene* _scene )
 {
+    params->frame_buffer = nullptr;
     params->frame = 0;
     params->lighting = false;
 
@@ -155,9 +159,17 @@ void handleCameraUpdate()
     scene->reconfigureSBTforCurrentCamera(false);
 }
 
-// Launch Optix threads to render a frame. Once this is done getCameraData() accesses the summed average values
+// Launch Optix threads to render a camera view. Once this is done getCameraData() accesses the
+// summed average values for a compound eye. Non-compound eye data is accessed with
+// getFramePointer()
 void launchFrame (MulticamScene* _scene )
 {
+    if (outputBuffer && (outputBuffer->width() * outputBuffer->height() > 0)) {
+        params->frame_buffer = outputBuffer->map();
+    } else {
+        params->frame_buffer = nullptr;
+    }
+
     // d_params is a global pointer to GPU RAM, params is a global pointer to CPU-side RAM
     CUDA_CHECK(cudaMemcpyAsync(reinterpret_cast<void*>(d_params),
                                params,
@@ -201,6 +213,22 @@ void launchFrame (MulticamScene* _scene )
             camera->averageRecordFrame();
             CUDA_SYNC_CHECK();
         }
+    } else {
+        // Launch non-compound render
+        if (width > 0 &&  height > 0) {
+            OPTIX_CHECK (optixLaunch (_scene->pipeline(),
+                                      0,             // stream
+                                      reinterpret_cast<CUdeviceptr>( d_params ),
+                                      sizeof( globalParameters::LaunchParams ),
+                                      _scene->sbt(),
+                                      width,  // launch width
+                                      height, // launch height
+                                      1));    // launch depth is 1
+        }
+    }
+
+    if (outputBuffer&& (outputBuffer->width() * outputBuffer->height() > 0)) {
+        outputBuffer->unmap();
     }
 
     CUDA_SYNC_CHECK();
@@ -229,6 +257,14 @@ void loadGlTFscene (const char* filepath)
     initLaunchParams (scene);
 }
 
+void setRenderSize (int w, int h)
+{
+    width = w;
+    height = h;
+    // Resize our non-compound eye output buffer here
+    outputBuffer->resize (width, height);
+}
+
 double renderFrame()
 {
     handleCameraUpdate();
@@ -243,6 +279,38 @@ double renderFrame()
     }
 
     return(render_time.count());
+}
+
+void saveFrameAs (const char* ppmFilename)
+{
+    sutil::ImageBuffer buffer;
+    buffer.data = outputBuffer->getHostPointer();
+    buffer.width = outputBuffer->width();
+    buffer.height = outputBuffer->height();
+    buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+    sutil::displayBufferFile (ppmFilename, buffer, false);
+    if (notificationsActive) {
+        std::cout << "[PyEye] Saved render as '" << ppmFilename << "'\n";
+    }
+}
+
+unsigned char* getFramePointer()
+{
+    if(notificationsActive) { std::cout << "[PyEye] Retrieving frame pointer...\n"; }
+    return (unsigned char*)outputBuffer->getHostPointer();
+}
+
+// Currently not revealed in libEyeRenderer.h...
+void getFrame (unsigned char* frame)
+{
+    if(notificationsActive) { std::cout << "[PyEye] Retrieving frame...\n"; }
+    size_t displaySize = outputBuffer->width() * outputBuffer->height();
+    for (size_t i = 0; i < displaySize; i++) {
+        unsigned char val = (unsigned char)(((float)i/(float)displaySize)*254);
+        frame[displaySize*3 + 0] = val;
+        frame[displaySize*3 + 1] = val;
+        frame[displaySize*3 + 2] = val;
+    }
 }
 
 void stop()
@@ -272,10 +340,10 @@ void gotoCamera (int index) { scene->setCurrentCamera(index); }
 bool gotoCameraByName (char* name)
 {
     scene->setCurrentCamera(0);
-    for(auto i = 0u; i<scene->getCameraCount(); i++)
-    {
-        if(strcmp(name, scene->getCamera()->getCameraName()) == 0)
+    for (auto i = 0u; i<scene->getCameraCount(); i++) {
+        if (strcmp(name, scene->getCamera()->getCameraName()) == 0) {
             return true;
+        }
         scene->nextCamera();
     }
     return false;
