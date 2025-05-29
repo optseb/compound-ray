@@ -87,7 +87,7 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
 
             // Set UV texture coordinates
             float2 UV0, UV1, UV2;
-            if( mesh_data.texcoords )
+            if( mesh_data.texcoords ) // may return false if the memory address for texcoords is not correctly aligned
             {
                 UV0 = mesh_data.texcoords[ tri.x ];
                 UV1 = mesh_data.texcoords[ tri.y ];
@@ -174,7 +174,7 @@ SUTIL_HOSTDEVICE LocalGeometry getLocalGeometry( const GeometryData& geometry_da
             lgeom.Ng = optixTransformNormalFromObjectToWorldSpace( lgeom.Ng );
 
             float3 N0, N1, N2;
-            if( mesh_data.normals )
+            if( mesh_data.normals ) // May return false if the memory address for normals is not correctly aligned
             {
                 N0 = mesh_data.normals[ tri.x ];
                 N1 = mesh_data.normals[ tri.y ];
