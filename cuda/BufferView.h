@@ -41,22 +41,22 @@ namespace cuda
     struct BufferView
     {
         // A pointer to the data
-        CUdeviceptr  data            CONST_STATIC_INIT( 0 );
+        CUdeviceptr data CONST_STATIC_INIT(0);
         // count of objects of size elmt_byte_size stored in this BufferView
-        uint32_t     count           CONST_STATIC_INIT( 0 );
+        uint32_t count CONST_STATIC_INIT(0);
         // A byte stride from object to object, which may be greater than elmt_byte_size
-        uint16_t     byte_stride     CONST_STATIC_INIT( 0 );
+        uint16_t byte_stride CONST_STATIC_INIT(0);
         // Size of the objects in bytes, might be smaller than T, into which type each object will be placed
-        uint16_t     elmt_byte_size  CONST_STATIC_INIT( 0 );
+        uint16_t elmt_byte_size CONST_STATIC_INIT(0);
 
         // Is the BufferView aligned for Optix functions? That requires data to be 16 byte aligned (OPTIX_SBT_RECORD_ALIGNMENT)
         SUTIL_HOSTDEVICE bool isAligned() const { return (data % OPTIX_SBT_RECORD_ALIGNMENT == 0); }
         // Is this BufferView's data pointer valid?
-        SUTIL_HOSTDEVICE bool isValid() const { return static_cast<bool>( data ); }
+        SUTIL_HOSTDEVICE bool isValid() const { return static_cast<bool>(data); }
         // bool operator returns true if the BufferView has valid, aligned data
         SUTIL_HOSTDEVICE operator bool() const { return isValid() && isAligned(); }
         // array operator for data access
-        SUTIL_HOSTDEVICE const T& operator[]( uint32_t idx ) const { return *reinterpret_cast<T*>(data + idx * actual_stride()); }
+        SUTIL_HOSTDEVICE const T& operator[] (uint32_t idx) const { return *reinterpret_cast<T*>(data + idx * actual_stride()); }
         // The stride is either the byte_stride if defined (larger than sizeof(T)) or sizeof(T)
         SUTIL_HOSTDEVICE size_t actual_stride() const { return (byte_stride ? byte_stride : sizeof(T)); }
         // Return the buffers data consumption in bytes
