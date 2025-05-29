@@ -434,7 +434,7 @@ add_subdirectory(sutil)
 add_subdirectory( libEyeRenderer3 )
 
 # An example eye renderer gui program
-#add_subdirectory( newGuiEyeRenderer )
+add_subdirectory( newGuiEyeRenderer )
 
 #################################################################
 
