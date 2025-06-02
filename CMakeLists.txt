@@ -411,8 +411,8 @@ endfunction()
 #  List of subprojects (usually executables) in this project.
 #
 
-set (glad_target glad)
-set (imgui_target imgui)
+set (glad_target glad) # Used by newGuiEyeRenderer
+
 set (sutil_target sutil_7_sdk)
 
 # Extra link for your cuda toolkit in /usr/local

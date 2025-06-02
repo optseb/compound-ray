@@ -40,8 +40,6 @@ set(sources
     Camera.h
     CUDAOutputBuffer.h
     Exception.h
-#    GLDisplay.cpp
-#    GLDisplay.h
     Matrix.h
     PPMLoader.cpp
     PPMLoader.h
@@ -73,12 +71,7 @@ if( WIN32 )
   target_compile_definitions( ${sutil_target} PUBLIC GLAD_GLAPI_EXPORT )
 endif()
 
-target_link_libraries(${sutil_target} LINK_PRIVATE
-  ${GLFW_LIB_NAME}
-  glad
-  imgui
-  ${CUDA_LIBRARIES}
-  )
+target_link_libraries(${sutil_target} LINK_PRIVATE ${GLFW_LIB_NAME} ${CUDA_LIBRARIES})
 
 target_include_directories( ${sutil_target} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
@@ -107,7 +100,7 @@ set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
 
 # NB: install() of libsutil_7_sdk.so is carried out in
 # libEyeRenderer/CMakeLists.txt as libEyeRender.so is exported along
-# with glad, imgui and sutil_7_sdk
+# with glad and sutil_7_sdk
 
 # Install headers
 install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h

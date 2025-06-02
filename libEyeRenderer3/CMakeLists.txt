@@ -47,7 +47,7 @@ target_include_directories(${EyeRenderer3_target} PUBLIC
 target_link_libraries(${EyeRenderer3_target} -lcudart -lrt -ldl)
 
 # Install EyeRender3 and its dependencies giving it the export name compound-ray-config
-install(TARGETS ${EyeRenderer3_target} ${sutil_target} ${imgui_target} ${glad_target}
+install(TARGETS ${EyeRenderer3_target} ${sutil_target} ${glad_target}
         EXPORT compound-ray-config
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
@@ -75,7 +75,7 @@ install(FILES
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/compound-ray/cameras)
 
 # Create the EXPORT so that compound-ray has its own .cmake file and find_package(compound-ray) should work
-export(TARGETS ${EyeRenderer3_target} ${sutil_target} ${imgui_target} ${glad_target}
+export(TARGETS ${EyeRenderer3_target} ${sutil_target} ${glad_target}
     NAMESPACE compound-ray::
     FILE "${CMAKE_CURRENT_BINARY_DIR}/compound-ray-config.cmake"
 )

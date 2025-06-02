@@ -18,6 +18,9 @@ set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../libEyeRenderer3/summi
 )
 OPTIX_add_sample_executable (newGuiEyeRenderer target_name ${gui_eye_renderer_sources} OPTIONS -rdc true)
 
+# #include <glad/glad.h> to come from ../support/
+target_include_directories(${target_name} INTERFACE PRIVATE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/../support")
+
 # ${CUDA_LIBRARIES} contains static links. Note that libEyeRenderer
 # now links dynamically to -lcudart, rt, dl, as this appeared to be
 # necessary to get a CUDA reduction kernel to run after an Optix ray

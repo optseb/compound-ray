@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <cuda_runtime.h>
 #include "GLDisplay.h"
+
 #include <sutil/CUDAOutputBuffer.h>
 
 #include <sutil/sutil.h>
@@ -11,9 +12,6 @@
 
 #include <sutil/vec_math.h>
 #include "BasicController.h"
-
-// This is BUFFER_TYPE_ZERO_COPY
-#define BUFFER_TYPE 2
 
 // This subproject loads in libEyeRenderer and uses it to render a given scene.
 // Basic controls are offered.
@@ -114,10 +112,9 @@ GLFWwindow* initWindow (const char* window_title, int width, int height)
     return window;
 }
 
+// Global pointers to resources
 GLFWwindow* window = initWindow ("CompoundRay Example GUI", win_width, win_height);
-
 extern sutil::CUDAOutputBuffer<uchar4>* outputBuffer;
-
 sutil::GLDisplay* gl_display = nullptr;
 
 static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, int32_t action, int32_t /*mods*/)

@@ -39,7 +39,7 @@ if( WARNINGS_AS_ERRORS AND (USING_GNU_CXX OR USING_CLANG_CXX))
   pop_variable( CMAKE_C_FLAGS )
 endif()
 
-add_subdirectory( imgui )
+#add_subdirectory( imgui )
 
 add_subdirectory( tinygltf )
 
@@ -60,7 +60,7 @@ target_link_libraries( ${glad_target} PUBLIC ${OPENGL_LIBRARIES} )
 
 # Set IDE folders for targets
 set_property( TARGET ${glad_target} PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
-set_property( TARGET imgui PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
+#set_property( TARGET imgui PROPERTY FOLDER ${OPTIX_IDE_FOLDER} )
 
 # NB: install() of libglad.so and libimgui.a are carried out in
 # libEyeRenderer/CMakeLists.txt as libEyeRender.so is exported along

@@ -59,6 +59,19 @@
 #include <iomanip>
 #include <iostream>
 
+// Using a handful of GL definitions
+#ifndef GL_MIRRORED_REPEAT
+# define GL_MIRRORED_REPEAT 0x8370
+#endif
+
+#ifndef GL_CLAMP_TO_EDGE
+# define GL_CLAMP_TO_EDGE 0x812F
+#endif
+
+#ifndef GL_NEAREST
+# define GL_NEAREST 0x2600
+#endif
+
 namespace
 {
     // Compile time debugging choices
