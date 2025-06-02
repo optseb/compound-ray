@@ -252,7 +252,8 @@ void setVerbosity (bool v) { notificationsActive = v; }
 
 void loadGlTFscene (const char* filepath)
 {
-    loadScene(filepath, *scene);
+    if (scene == nullptr) { throw sutil::Exception ("loadGlTFscene exception: scene is nullptr"); }
+    loadScene (filepath, *scene);
     scene->finalize();
     initLaunchParams (scene);
 }
