@@ -26,6 +26,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
+// NB: Seb has hacked this to be GL free (So no GL_INTEROP any more). Used only by
+// newGuiEyeRenderer/gui.cpp.
+
 #pragma once
 
 #include <sutil/Exception.h>
@@ -37,316 +40,161 @@
 namespace sutil
 {
 
-enum class CUDAOutputBufferType
-{
-    CUDA_DEVICE = 0, // not preferred, typically slower than ZERO_COPY
-    GL_INTEROP  = 1, // NOT SUPPORTED single device only, preferred for single device NOT SUPPORTED
-    ZERO_COPY   = 2, // general case, preferred for multi-gpu if not fully nvlink connected
-    CUDA_P2P    = 3  // NOT SUPPORTED fully connected only, preferred for fully nvlink connected NOT SUPPORTED
-};
-
-
-template <typename PIXEL_FORMAT>
-class CUDAOutputBuffer
-{
-public:
-    CUDAOutputBuffer( CUDAOutputBufferType type, int32_t width, int32_t height );
-    ~CUDAOutputBuffer();
-
-    void setDevice( int32_t device_idx ) { m_device_idx = device_idx; }
-    void setStream( CUstream stream    ) { m_stream     = stream;     }
-
-    void resize( int32_t width, int32_t height );
-
-    // Allocate or update device pointer as necessary for CUDA access
-    PIXEL_FORMAT* map();
-    void unmap();
-
-    int32_t        width()  { return m_width;  }
-    int32_t        height() { return m_height; }
-    int32_t        area() { return m_width * m_height; }
-
-    // Get output buffer
-    PIXEL_FORMAT*  getHostPointer();
-
-    CUDAOutputBufferType getType () const { return this->m_type; }
-
-    void makeCurrent() { CUDA_CHECK( cudaSetDevice( m_device_idx ) ); }
-
-private:
-    CUDAOutputBufferType       m_type;
-
-    int32_t                    m_width             = 0u;
-    int32_t                    m_height            = 0u;
-
-    cudaGraphicsResource*      m_cuda_gfx_resource = nullptr;
-
-public:
-    PIXEL_FORMAT*              m_host_zcopy_pixels = nullptr;
-    PIXEL_FORMAT*              m_device_pixels     = nullptr;
-    std::vector<PIXEL_FORMAT>  m_host_pixels;
-
-private:
-    CUstream                   m_stream            = 0u;
-    int32_t                    m_device_idx        = 0;
-};
-
-
-template <typename PIXEL_FORMAT>
-CUDAOutputBuffer<PIXEL_FORMAT>::CUDAOutputBuffer( CUDAOutputBufferType type, int32_t width, int32_t height )
-    : m_type( type )
-{
-    if( type == CUDAOutputBufferType::GL_INTEROP )
-    { throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP not supported"); }
-    resize( width, height );
-}
-
-
-template <typename PIXEL_FORMAT>
-CUDAOutputBuffer<PIXEL_FORMAT>::~CUDAOutputBuffer()
-{
-    try
+    enum class CUDAOutputBufferType
     {
-        makeCurrent();
-        if( m_type == CUDAOutputBufferType::CUDA_DEVICE)
-        {
-            CUDA_CHECK( cudaFree( reinterpret_cast<void*>( m_device_pixels ) ) );
-        }
-        else if(m_type == CUDAOutputBufferType::CUDA_P2P )
-        {
-            CUDA_CHECK( cudaFree( reinterpret_cast<void*>( m_device_pixels ) ) );
-        }
-        else if( m_type == CUDAOutputBufferType::ZERO_COPY )
-        {
-            CUDA_CHECK( cudaFreeHost( reinterpret_cast<void*>( m_host_zcopy_pixels ) ) );
-        }
-        else if( m_type == CUDAOutputBufferType::GL_INTEROP )
-        {
+        CUDA_DEVICE = 0, // not preferred, typically slower than ZERO_COPY
+        GL_INTEROP  = 1, // NOT SUPPORTED single device only, preferred for single device NOT SUPPORTED
+        ZERO_COPY   = 2, // general case, preferred for multi-gpu if not fully nvlink connected
+        CUDA_P2P    = 3  // NOT SUPPORTED fully connected only, preferred for fully nvlink connected NOT SUPPORTED
+    };
+
+
+    template <typename PIXEL_FORMAT>
+    class CUDAOutputBuffer
+    {
+    public:
+        CUDAOutputBuffer( CUDAOutputBufferType type, int32_t width, int32_t height );
+        ~CUDAOutputBuffer();
+
+        void setDevice( int32_t device_idx ) { m_device_idx = device_idx; }
+        void setStream( CUstream stream    ) { m_stream     = stream;     }
+
+        void resize( int32_t width, int32_t height );
+
+        // Allocate or update device pointer as necessary for CUDA access
+        PIXEL_FORMAT* map();
+        void unmap();
+
+        int32_t width()  { return m_width;  }
+        int32_t height() { return m_height; }
+        int32_t area() { return m_width * m_height; }
+
+        // Get output buffer
+        PIXEL_FORMAT*  getHostPointer();
+
+        CUDAOutputBufferType getType () const { return this->m_type; }
+
+        void makeCurrent() { CUDA_CHECK( cudaSetDevice( m_device_idx ) ); }
+
+    private:
+        CUDAOutputBufferType       m_type;
+
+        int32_t                    m_width             = 0u;
+        int32_t                    m_height            = 0u;
+
+        cudaGraphicsResource*      m_cuda_gfx_resource = nullptr;
+
+    public:
+        PIXEL_FORMAT*              m_host_zcopy_pixels = nullptr;
+        PIXEL_FORMAT*              m_device_pixels     = nullptr;
+        std::vector<PIXEL_FORMAT>  m_host_pixels;
+
+    private:
+        CUstream                   m_stream            = 0u;
+        int32_t                    m_device_idx        = 0;
+    };
+
+
+    template <typename PIXEL_FORMAT>
+    CUDAOutputBuffer<PIXEL_FORMAT>::CUDAOutputBuffer (CUDAOutputBufferType type, int32_t width, int32_t height)
+        : m_type(type)
+    {
+        if (type == CUDAOutputBufferType::GL_INTEROP) {
             throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP not supported");
         }
-#if 0
-        if( m_pbo != 0u )
-        {
-            GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
-            GL_CHECK( glDeleteBuffers( 1, &m_pbo ) );
+        resize (width, height);
+    }
+
+    template <typename PIXEL_FORMAT>
+    CUDAOutputBuffer<PIXEL_FORMAT>::~CUDAOutputBuffer()
+    {
+        try {
+            makeCurrent();
+            if (m_type == CUDAOutputBufferType::CUDA_DEVICE) {
+                CUDA_CHECK( cudaFree( reinterpret_cast<void*>( m_device_pixels ) ) );
+            } else if (m_type == CUDAOutputBufferType::CUDA_P2P ) {
+                throw sutil::Exception ("CUDAOutputBuffer: CUDA_P2P not supported");
+            } else if (m_type == CUDAOutputBufferType::ZERO_COPY ) {
+                CUDA_CHECK( cudaFreeHost( reinterpret_cast<void*>( m_host_zcopy_pixels ) ) );
+            } else if (m_type == CUDAOutputBufferType::GL_INTEROP ) {
+                throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP not supported");
+            }
+        } catch(std::exception& e ) {
+            std::cerr << "CUDAOutputBuffer destructor caught exception: " << e.what() << std::endl;
         }
-#endif
-    }
-    catch(std::exception& e )
-    {
-        std::cerr << "CUDAOutputBuffer destructor caught exception: " << e.what() << std::endl;
-    }
-}
-
-
-template <typename PIXEL_FORMAT>
-void CUDAOutputBuffer<PIXEL_FORMAT>::resize( int32_t width, int32_t height )
-{
-    if( m_width == width && m_height == height )
-        return;
-
-    m_width  = width;
-    m_height = height;
-
-    makeCurrent();
-
-    if( m_type == CUDAOutputBufferType::CUDA_DEVICE /* || m_type == CUDAOutputBufferType::CUDA_P2P*/ )
-    {
-        CUDA_CHECK( cudaFree( reinterpret_cast<void*>( m_device_pixels ) ) );
-        CUDA_CHECK( cudaMalloc(
-                    reinterpret_cast<void**>( &m_device_pixels ),
-                    m_width*m_height*sizeof(PIXEL_FORMAT)
-                    ) );
-
     }
 
-    if( m_type == CUDAOutputBufferType::GL_INTEROP || m_type == CUDAOutputBufferType::CUDA_P2P )
+    template <typename PIXEL_FORMAT>
+    void CUDAOutputBuffer<PIXEL_FORMAT>::resize( int32_t width, int32_t height )
     {
-        throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP/CUDA_P2P not supported");
-#if 0
-        // GL buffer gets resized below
-        GL_CHECK( glGenBuffers( 1, &m_pbo ) );
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, m_pbo ) );
-        GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof(PIXEL_FORMAT)*width*height, nullptr, GL_STREAM_DRAW ) );
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0u ) );
+        if (m_width == width && m_height == height) { return; }
 
-        CUDA_CHECK( cudaGraphicsGLRegisterBuffer(
-                    &m_cuda_gfx_resource,
-                    m_pbo,
-                    cudaGraphicsMapFlagsWriteDiscard
-                    ) );
-#endif
-    }
+        m_width = width;
+        m_height = height;
 
-    if( m_type == CUDAOutputBufferType::ZERO_COPY )
-    {
-        CUDA_CHECK( cudaFreeHost( reinterpret_cast<void*>( m_host_zcopy_pixels ) ) );
-        CUDA_CHECK( cudaHostAlloc(
-                    reinterpret_cast<void**>( &m_host_zcopy_pixels ),
-                    m_width*m_height*sizeof(PIXEL_FORMAT),
-                    cudaHostAllocPortable | cudaHostAllocMapped
-                    ) );
-        CUDA_CHECK( cudaHostGetDevicePointer(
-                    reinterpret_cast<void**>( &m_device_pixels ),
-                    reinterpret_cast<void*>( m_host_zcopy_pixels ),
-                    0 /*flags*/
-                    ) );
-    }
-
-#if 0
-    if( m_type != CUDAOutputBufferType::GL_INTEROP && m_type != CUDAOutputBufferType::CUDA_P2P && m_pbo != 0u )
-    {
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, m_pbo ) );
-        GL_CHECK( glBufferData( GL_ARRAY_BUFFER, sizeof(PIXEL_FORMAT)*width*height, nullptr, GL_STREAM_DRAW ) );
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0u ) );
-    }
-#endif
-
-    if( !m_host_pixels.empty() )
-        m_host_pixels.resize( m_width*m_height );
-}
-
-
-template <typename PIXEL_FORMAT>
-PIXEL_FORMAT* CUDAOutputBuffer<PIXEL_FORMAT>::map()
-{
-    if( m_type == CUDAOutputBufferType::CUDA_DEVICE /*|| m_type == CUDAOutputBufferType::CUDA_P2P*/ )
-    {
-        // nothing needed
-    }
-    else if( m_type == CUDAOutputBufferType::GL_INTEROP  )
-    {
-        throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP not supported");
-#if 0
         makeCurrent();
 
-        size_t buffer_size = 0u;
-        CUDA_CHECK( cudaGraphicsMapResources ( 1, &m_cuda_gfx_resource, m_stream ) );
-        CUDA_CHECK( cudaGraphicsResourceGetMappedPointer(
-                    reinterpret_cast<void**>( &m_device_pixels ),
-                    &buffer_size,
-                    m_cuda_gfx_resource
-                    ) );
-#endif
+        if (m_type == CUDAOutputBufferType::CUDA_DEVICE) {
+            CUDA_CHECK (cudaFree (reinterpret_cast<void*>(m_device_pixels)));
+            CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&m_device_pixels), m_width * m_height * sizeof(PIXEL_FORMAT)));
+        }
+
+        if (m_type == CUDAOutputBufferType::GL_INTEROP || m_type == CUDAOutputBufferType::CUDA_P2P) {
+            throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP/CUDA_P2P not supported");
+        }
+
+        if (m_type == CUDAOutputBufferType::ZERO_COPY) {
+            CUDA_CHECK (cudaFreeHost (reinterpret_cast<void*>(m_host_zcopy_pixels)));
+            CUDA_CHECK (cudaHostAlloc (reinterpret_cast<void**>(&m_host_zcopy_pixels),
+                                       m_width * m_height * sizeof(PIXEL_FORMAT),
+                                       cudaHostAllocPortable | cudaHostAllocMapped));
+            CUDA_CHECK (cudaHostGetDevicePointer (reinterpret_cast<void**>(&m_device_pixels),
+                                                  reinterpret_cast<void*>(m_host_zcopy_pixels), 0));
+        }
+
+        if (!m_host_pixels.empty()) { m_host_pixels.resize (m_width * m_height); }
     }
-    else // m_type == CUDAOutputBufferType::ZERO_COPY
+
+    template <typename PIXEL_FORMAT>
+    PIXEL_FORMAT* CUDAOutputBuffer<PIXEL_FORMAT>::map()
     {
-        // nothing needed
+        if (m_type == CUDAOutputBufferType::GL_INTEROP ) {
+            throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP not supported");
+        } // else no need to do anything
+        return m_device_pixels;
     }
 
-    return m_device_pixels;
-}
-
-
-template <typename PIXEL_FORMAT>
-void CUDAOutputBuffer<PIXEL_FORMAT>::unmap()
-{
-    makeCurrent();
-
-    if( m_type == CUDAOutputBufferType::CUDA_DEVICE /*|| m_type == CUDAOutputBufferType::CUDA_P2P*/ )
-    {
-        CUDA_CHECK( cudaStreamSynchronize( m_stream ) );
-    }
-    else if( m_type == CUDAOutputBufferType::GL_INTEROP  )
-    {
-        throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP not supported");
-#if 0
-        CUDA_CHECK( cudaGraphicsUnmapResources ( 1, &m_cuda_gfx_resource,  m_stream ) );
-#endif
-    }
-    else // m_type == CUDAOutputBufferType::ZERO_COPY
-    {
-        CUDA_CHECK( cudaStreamSynchronize( m_stream ) );
-    }
-}
-
-#if 0 // Goes to gui.cpp
-template <typename PIXEL_FORMAT>
-GLuint CUDAOutputBuffer<PIXEL_FORMAT>::getPBO()
-{
-    if( m_pbo == 0u )
-        GL_CHECK( glGenBuffers( 1, &m_pbo ) );
-
-    const size_t buffer_size = m_width*m_height*sizeof(PIXEL_FORMAT);
-
-    if( m_type == CUDAOutputBufferType::CUDA_DEVICE )
-    {
-        // We need a host buffer to act as a way-station
-        if( m_host_pixels.empty() )
-            m_host_pixels.resize( m_width*m_height );
-
-        makeCurrent();
-        CUDA_CHECK( cudaMemcpy(
-                    static_cast<void*>( m_host_pixels.data() ),
-                    m_device_pixels,
-                    buffer_size,
-                    cudaMemcpyDeviceToHost
-                    ) );
-
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, m_pbo ) );
-        GL_CHECK( glBufferData(
-                    GL_ARRAY_BUFFER,
-                    buffer_size,
-                    static_cast<void*>( m_host_pixels.data() ),
-                    GL_STREAM_DRAW
-                    ) );
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
-    }
-    else if( m_type == CUDAOutputBufferType::GL_INTEROP  )
-    {
-        // Nothing needed
-    }
-    else if ( m_type == CUDAOutputBufferType::CUDA_P2P )
+    template <typename PIXEL_FORMAT>
+    void CUDAOutputBuffer<PIXEL_FORMAT>::unmap()
     {
         makeCurrent();
-        void* pbo_buff = nullptr;
-        size_t dummy_size = 0;
-
-        CUDA_CHECK( cudaGraphicsMapResources( 1, &m_cuda_gfx_resource, m_stream ) );
-        CUDA_CHECK( cudaGraphicsResourceGetMappedPointer( &pbo_buff, &dummy_size, m_cuda_gfx_resource ) );
-        CUDA_CHECK( cudaMemcpy( pbo_buff, m_device_pixels, buffer_size, cudaMemcpyDeviceToDevice ) );
-        CUDA_CHECK( cudaGraphicsUnmapResources( 1, &m_cuda_gfx_resource, m_stream ) );
+        if( m_type == CUDAOutputBufferType::GL_INTEROP  ) {
+            throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP not supported");
+        } else { // ZERO_COPY or CUDA_DEVICE:
+            CUDA_CHECK (cudaStreamSynchronize (m_stream));
+        }
     }
-    else // m_type == CUDAOutputBufferType::ZERO_COPY
+
+    template <typename PIXEL_FORMAT>
+    PIXEL_FORMAT* CUDAOutputBuffer<PIXEL_FORMAT>::getHostPointer()
     {
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, m_pbo ) );
-        GL_CHECK( glBufferData(
-                    GL_ARRAY_BUFFER,
-                    buffer_size,
-                    static_cast<void*>( m_host_zcopy_pixels ),
-                    GL_STREAM_DRAW
-                    ) );
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
+        if (m_type == CUDAOutputBufferType::CUDA_DEVICE) {
+
+            m_host_pixels.resize (m_width * m_height);
+
+            makeCurrent();
+            CUDA_CHECK (cudaMemcpy (static_cast<void*>(m_host_pixels.data()), map(),
+                                    m_width * m_height * sizeof(PIXEL_FORMAT), cudaMemcpyDeviceToHost));
+            unmap();
+
+            return m_host_pixels.data();
+
+        } else if (m_type == CUDAOutputBufferType::ZERO_COPY) {
+            return m_host_zcopy_pixels;
+
+        } else {
+            throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP/CUDA_P2P not supported");
+        }
     }
-
-    return m_pbo;
-}
-#endif
-
-template <typename PIXEL_FORMAT>
-PIXEL_FORMAT* CUDAOutputBuffer<PIXEL_FORMAT>::getHostPointer()
-{
-    if (m_type == CUDAOutputBufferType::CUDA_DEVICE) {
-
-        m_host_pixels.resize( m_width*m_height );
-
-        makeCurrent();
-        CUDA_CHECK( cudaMemcpy(
-                    static_cast<void*>( m_host_pixels.data() ),
-                    map(),
-                    m_width*m_height*sizeof(PIXEL_FORMAT),
-                    cudaMemcpyDeviceToHost
-                    ) );
-        unmap();
-
-        return m_host_pixels.data();
-
-    } else if (m_type == CUDAOutputBufferType::ZERO_COPY) {
-        return m_host_zcopy_pixels;
-
-    } else {
-        throw sutil::Exception ("CUDAOutputBuffer: GL_INTEROP/CUDA_P2P not supported");
-    }
-}
 
 } // end namespace sutil
