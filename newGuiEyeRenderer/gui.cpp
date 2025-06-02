@@ -93,6 +93,8 @@ int main (int argc, char* argv[])
 
     // Allocates a scene, launch params and output buffer in libEyeRenderer
     multicamAlloc();
+    // Initialize the rendering size:
+    setRenderSize (win_width, win_height);
 
     // Parse Inputs
     std::string path = "";
