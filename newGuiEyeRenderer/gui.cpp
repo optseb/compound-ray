@@ -91,6 +91,9 @@ int main (int argc, char* argv[])
 {
     std::cout << "Running eye Renderer GUI...\n";
 
+    // Allocates a scene, launch params and output buffer in libEyeRenderer
+    multicamAlloc();
+
     // Parse Inputs
     std::string path = "";
     for (int i=0; i<argc; i++) {
@@ -152,7 +155,9 @@ int main (int argc, char* argv[])
 
     } catch (std::exception& e) {
         std::cerr << "Caught exception: " << e.what() << "\n";
+        multicamDealloc();
         return 1;
     }
+    multicamDealloc();
     return 0;
 }
