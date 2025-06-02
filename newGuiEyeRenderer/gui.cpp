@@ -2,8 +2,7 @@
 
 #include <glad/glad.h>
 #include <cuda_runtime.h>
-#include <cuda_gl_interop.h>
-#include <sutil/GLDisplay.h>
+#include "GLDisplay.h"
 #include <sutil/CUDAOutputBuffer.h>
 
 #include <sutil/sutil.h>
@@ -12,6 +11,9 @@
 
 #include <sutil/vec_math.h>
 #include "BasicController.h"
+
+// This is BUFFER_TYPE_ZERO_COPY
+#define BUFFER_TYPE 2
 
 // This subproject loads in libEyeRenderer and uses it to render a given scene.
 // Basic controls are offered.
@@ -23,9 +25,100 @@ BasicController controller;
 int32_t win_width = 400;
 int32_t win_height = 400;
 
-GLFWwindow* window = sutil::initUI ("CompoundRay Example GUI", win_width, win_height);
+// These are from libEyeRenderer
+extern int32_t width;
+extern int32_t height;
+
+// Was in CUDAOutputBuffer
+GLuint _pbo = 0;
+
+// Was in CUDAOutputBuffer
+template <typename PIXEL_FORMAT>
+GLuint getPBO (sutil::CUDAOutputBuffer<PIXEL_FORMAT>* buf_ptr)
+{
+    if (_pbo == 0u) { GL_CHECK (glGenBuffers (1, &_pbo)); }
+
+    const size_t buffer_size = buf_ptr->area() * sizeof(PIXEL_FORMAT);
+
+    if (buf_ptr->getType() == sutil::CUDAOutputBufferType::CUDA_DEVICE) {
+        // We need a host buffer to act as a way-station
+        if (buf_ptr->m_host_pixels.empty()) { buf_ptr->m_host_pixels.resize (buf_ptr->area()); }
+
+        buf_ptr->makeCurrent();
+        CUDA_CHECK(cudaMemcpy (static_cast<void*>(buf_ptr->m_host_pixels.data()),
+                               buf_ptr->m_device_pixels,
+                               buffer_size,
+                               cudaMemcpyDeviceToHost));
+
+        GL_CHECK (glBindBuffer (GL_ARRAY_BUFFER, _pbo));
+        GL_CHECK (glBufferData (GL_ARRAY_BUFFER,
+                                buffer_size,
+                                static_cast<void*>(buf_ptr->m_host_pixels.data()),
+                                GL_STREAM_DRAW));
+        GL_CHECK (glBindBuffer (GL_ARRAY_BUFFER, 0));
+
+    } else if (buf_ptr->getType() == sutil::CUDAOutputBufferType::GL_INTEROP
+             || buf_ptr->getType() == sutil::CUDAOutputBufferType::CUDA_P2P) {
+        throw sutil::Exception("Unsupported");
+
+    } else { // getType() == CUDAOutputBufferType::ZERO_COPY
+        GL_CHECK (glBindBuffer (GL_ARRAY_BUFFER, _pbo));
+        GL_CHECK (glBufferData (GL_ARRAY_BUFFER,
+                                buffer_size,
+                                static_cast<void*>(buf_ptr->m_host_zcopy_pixels),
+                                GL_STREAM_DRAW));
+        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
+    }
+
+    return _pbo;
+}
+
+void initGL()
+{
+    int glad_gl_version = gladLoadGL();
+    if (!glad_gl_version) { throw sutil::Exception ("Failed to initialize GL functions"); }
+    GL_CHECK (glClearColor (0.212f, 0.271f, 0.31f, 1.0f));
+    GL_CHECK (glClear (GL_COLOR_BUFFER_BIT));
+}
+
+static void errorCallback (int error, const char* description)
+{
+    std::cerr << "GLFW Error " << error << ": " << description << std::endl;
+}
+
+GLFWwindow* initGLFW (const char* window_title, int width, int height, bool visible = true)
+{
+    std::cout << __func__ << "("<<window_title<<","<<width<<","<<height<<") called\n";
+    glfwSetErrorCallback (errorCallback);
+    if(!glfwInit()) { throw sutil::Exception ("Failed to initialize GLFW"); }
+
+    glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Removes functions deprecated in version <4.1
+    glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint (GLFW_VISIBLE, (visible ? GLFW_TRUE : GLFW_FALSE));
+
+    GLFWwindow* window = glfwCreateWindow (width, height, window_title, nullptr, nullptr);
+    if( !window ) { throw sutil::Exception ("Failed to create GLFW window"); }
+    glfwMakeContextCurrent (window);
+    glfwSwapInterval (0);  // No vsync
+
+    return window;
+}
+
+GLFWwindow* initWindow (const char* window_title, int width, int height)
+{
+    GLFWwindow* window = initGLFW (window_title, width, height);
+    glfwMakeContextCurrent (window);
+    initGL();
+    return window;
+}
+
+GLFWwindow* window = initWindow ("CompoundRay Example GUI", win_width, win_height);
+
 extern sutil::CUDAOutputBuffer<uchar4>* outputBuffer;
-sutil::GLDisplay gl_display;
+
+sutil::GLDisplay* gl_display = nullptr;
 
 static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, int32_t action, int32_t /*mods*/)
 {
@@ -81,8 +174,11 @@ void displayFrame()
     int fb_res_x = 0; // The display's resolution (could be HDPI res)
     int fb_res_y = 0;
     glfwGetFramebufferSize (window, &fb_res_x, &fb_res_y);
+
     if (outputBuffer != nullptr) {
-        gl_display.display (outputBuffer->width(), outputBuffer->height(), fb_res_x, fb_res_y, outputBuffer->getPBO());
+        gl_display->display (outputBuffer->width(), outputBuffer->height(),
+                             fb_res_x, fb_res_y,
+                             getPBO (outputBuffer));
     }
     glfwSwapBuffers (window);
 }
@@ -91,10 +187,13 @@ int main (int argc, char* argv[])
 {
     std::cout << "Running eye Renderer GUI...\n";
 
+    // Initialize the rendering size:
+    width = win_width;
+    height = win_height;
     // Allocates a scene, launch params and output buffer in libEyeRenderer
     multicamAlloc();
-    // Initialize the rendering size:
-    setRenderSize (win_width, win_height);
+
+    gl_display = new sutil::GLDisplay();
 
     // Parse Inputs
     std::string path = "";
@@ -114,13 +213,11 @@ int main (int argc, char* argv[])
         return 1;
     }
 
-    int w = 400;
-    int h = 400;
-
     // Attach callbacks
     glfwSetKeyCallback (window, keyCallback);
     glfwSetWindowSizeCallback (window, windowSizeCallback);
 
+    int rtn = 0;
     try {
         // Turn off verbose logging
         setVerbosity(false);
@@ -157,9 +254,11 @@ int main (int argc, char* argv[])
 
     } catch (std::exception& e) {
         std::cerr << "Caught exception: " << e.what() << "\n";
-        multicamDealloc();
-        return 1;
+        rtn = 1;
     }
+
+    delete gl_display;
     multicamDealloc();
-    return 0;
+
+    return rtn;
 }

@@ -60,6 +60,17 @@
 #include <stdexcept>
 
 //#define USE_IAS // WAR for broken direct intersection of GAS on non-RTX cards
+
+#ifndef BUFFER_TYPE_CUDA_DEVICE
+# ifndef BUFFER_TYPE_GL_INTEROP
+#  ifndef BUFFER_TYPE_ZERO_COPY
+#   ifndef BUFFER_TYPE_CUDA_P2P
+#    define BUFFER_TYPE_ZERO_COPY 1
+#   endif
+#  endif
+# endif
+#endif
+
 #ifdef BUFFER_TYPE_CUDA_DEVICE
 #define BUFFER_TYPE 0
 #endif
@@ -87,7 +98,7 @@ MulticamScene* scene;
 globalParameters::LaunchParams*  d_params = nullptr;
 globalParameters::LaunchParams*  params = nullptr; // hostside now
 
-// An output buffer used by non-compound eye cameras
+// An output buffer used by non-compound eye cameras. Annoyingly, CUDAOutputBuffer has lots of GL calls in it.
 sutil::CUDAOutputBuffer<uchar4>* outputBuffer = nullptr;
 // The width and height of the output buffer
 int32_t width = 0;
@@ -289,7 +300,9 @@ void saveFrameAs (const char* ppmFilename)
     buffer.width = outputBuffer->width();
     buffer.height = outputBuffer->height();
     buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+
     sutil::displayBufferFile (ppmFilename, buffer, false);
+
     if (notificationsActive) {
         std::cout << "[PyEye] Saved render as '" << ppmFilename << "'\n";
     }

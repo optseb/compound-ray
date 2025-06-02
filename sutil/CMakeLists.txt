@@ -40,8 +40,8 @@ set(sources
     Camera.h
     CUDAOutputBuffer.h
     Exception.h
-    GLDisplay.cpp
-    GLDisplay.h
+#    GLDisplay.cpp
+#    GLDisplay.h
     Matrix.h
     PPMLoader.cpp
     PPMLoader.h
@@ -110,7 +110,7 @@ set_property(TARGET ${sutil_target} PROPERTY FOLDER "${OPTIX_IDE_FOLDER}")
 # with glad, imgui and sutil_7_sdk
 
 # Install headers
-install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h GLDisplay.h
+install(FILES Aabb.h Camera.h CUDAOutputBuffer.h Exception.h
         hitscanprocessing.h Matrix.h PPMLoader.h Preprocessor.h
         Quaternion.h Record.h sutilapi.h sutil.h Trackball.h vec_math.h
         WorkDistribution.h

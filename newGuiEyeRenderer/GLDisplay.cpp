@@ -27,7 +27,7 @@
 //
 
 #include <sutil/Exception.h>
-#include <sutil/GLDisplay.h>
+#include "GLDisplay.h"
 
 #include <iostream>
 

@@ -3,6 +3,7 @@ set(gui_eye_renderer_sources
   gui.cpp
   BasicController.h
   BasicController.cpp
+  GLDisplay.cpp
 )
 
 # Include the 'add_eye_renderer' macro from the eye renderer and
