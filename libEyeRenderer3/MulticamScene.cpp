@@ -75,7 +75,7 @@
 namespace
 {
     // Compile time debugging choices
-    static constexpr bool debug_gltf = true;
+    static constexpr bool debug_gltf = false;
     static constexpr bool debug_cameras = false;
     static constexpr bool debug_pipeline = false;
 
@@ -91,10 +91,13 @@ namespace
 
     typedef Record<globalParameters::HitGroupData> HitGroupRecord;
 
+    static constexpr bool debug_allow_context_log = false;
     void context_log_cb( unsigned int level, const char* tag, const char* message, void* /*cbdata */)
     {
-        std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: "
-                  << message << "\n";
+        if constexpr (debug_allow_context_log) {
+            std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: "
+                      << message << "\n";
+        }
     }
 
     static constexpr bool debug_bufferview = false;
