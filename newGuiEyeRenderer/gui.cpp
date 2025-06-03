@@ -29,9 +29,15 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
       // Camera changing
       if(key == GLFW_KEY_N)
       {
+        std::cout << "switch to next camera...";
         nextCamera();
+        std::cout << " " << getCurrentCameraName()
+                  << (isCompoundEyeActive() ? " which is compound\n" : " which is isn't compound\n");
       }else if(key == GLFW_KEY_B){
+        std::cout << "switch to prev camera...";
         previousCamera();
+        std::cout << " " << getCurrentCameraName()
+                  << (isCompoundEyeActive() ? " which is is compound\n" : " which is isn't compound\n");
       }else if(key == GLFW_KEY_PAGE_UP){
         int csamp = getCurrentEyeSamplesPerOmmatidium();
         if (csamp < 32000) {
