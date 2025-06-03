@@ -178,6 +178,8 @@ void displayFrame()
     int fb_res_y = 0;
     glfwGetFramebufferSize (window, &fb_res_x, &fb_res_y);
 
+    // If compound eye active, copy data into outputBuffer.
+
     if (outputBuffer != nullptr) {
         gl_display->display (outputBuffer->width(), outputBuffer->height(),
                              fb_res_x, fb_res_y,
