@@ -38,7 +38,8 @@ GLuint getPBO (sutil::CUDAOutputBuffer<PIXEL_FORMAT>* buf_ptr)
 
     const size_t buffer_size = buf_ptr->area() * sizeof(PIXEL_FORMAT);
 
-    if (buf_ptr->getType() == sutil::CUDAOutputBufferType::CUDA_DEVICE) {
+    const auto typ = buf_ptr->getType();
+    if (typ == sutil::CUDAOutputBufferType::CUDA_DEVICE) {
         // We need a host buffer to act as a way-station
         if (buf_ptr->m_host_pixels.empty()) { buf_ptr->m_host_pixels.resize (buf_ptr->area()); }
 
@@ -55,11 +56,10 @@ GLuint getPBO (sutil::CUDAOutputBuffer<PIXEL_FORMAT>* buf_ptr)
                                 GL_STREAM_DRAW));
         GL_CHECK (glBindBuffer (GL_ARRAY_BUFFER, 0));
 
-    } else if (buf_ptr->getType() == sutil::CUDAOutputBufferType::GL_INTEROP
-             || buf_ptr->getType() == sutil::CUDAOutputBufferType::CUDA_P2P) {
+    } else if (typ == sutil::CUDAOutputBufferType::GL_INTEROP || typ == sutil::CUDAOutputBufferType::CUDA_P2P) {
         throw sutil::Exception("Unsupported");
 
-    } else { // getType() == CUDAOutputBufferType::ZERO_COPY
+    } else { // typ == CUDAOutputBufferType::ZERO_COPY
         GL_CHECK (glBindBuffer (GL_ARRAY_BUFFER, _pbo));
         GL_CHECK (glBufferData (GL_ARRAY_BUFFER,
                                 buffer_size,
@@ -129,9 +129,15 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
 
             // Camera changing
             if (key == GLFW_KEY_N) {
+                std::cout << "switch to next camera...";
                 nextCamera();
+                std::cout << " " << getCurrentCameraName()
+                          << (isCompoundEyeActive() ? " which is compound\n" : " which is isn't compound\n");
             } else if (key == GLFW_KEY_B) {
+                std::cout << "switch to prev camera...";
                 previousCamera();
+                std::cout << " " << getCurrentCameraName()
+                          << (isCompoundEyeActive() ? " which is is compound\n" : " which is isn't compound\n");
             } else if (key == GLFW_KEY_PAGE_UP) {
                 int csamp = getCurrentEyeSamplesPerOmmatidium();
                 if (csamp < 32000) {
@@ -222,6 +228,9 @@ int main (int argc, char* argv[])
         // Load the file
         std::cout << "Loading file \"" << path << "\"..." << std::endl;
         loadGlTFscene(path.c_str());
+
+        std::cout << "Initial camera is " << getCurrentCameraName()
+                  << (isCompoundEyeActive() ? " which is compound\n" : " which isn't compound\n");
 
         // The main loop
         do {
