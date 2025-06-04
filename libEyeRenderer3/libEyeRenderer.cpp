@@ -28,10 +28,7 @@
 
 #include "libEyeRenderer.h"
 
-#include <glad/glad.h> // Needs to be included before gl_interop
-
 #include <cuda_runtime.h>
-#include <cuda_gl_interop.h>
 
 #include <optix.h>
 #include <optix_stubs.h>
@@ -43,7 +40,6 @@
 #include <sutil/Camera.h>
 #include <sutil/CUDAOutputBuffer.h>
 #include <sutil/Exception.h>
-#include <sutil/GLDisplay.h>
 #include <sutil/Matrix.h>
 #include <sutil/sutil.h>
 #include <sutil/vec_math.h>
@@ -51,8 +47,6 @@
 #include "MulticamScene.h"
 #include "GlobalParameters.h"
 #include "cameras/CompoundEyeDataTypes.h"
-
-#include <GLFW/glfw3.h>
 
 #include <array>
 #include <cstring>
@@ -66,6 +60,17 @@
 #include <stdexcept>
 
 //#define USE_IAS // WAR for broken direct intersection of GAS on non-RTX cards
+
+#ifndef BUFFER_TYPE_CUDA_DEVICE
+# ifndef BUFFER_TYPE_GL_INTEROP
+#  ifndef BUFFER_TYPE_ZERO_COPY
+#   ifndef BUFFER_TYPE_CUDA_P2P
+#    define BUFFER_TYPE_ZERO_COPY 1
+#   endif
+#  endif
+# endif
+#endif
+
 #ifdef BUFFER_TYPE_CUDA_DEVICE
 #define BUFFER_TYPE 0
 #endif
@@ -92,34 +97,32 @@ MulticamScene* scene;
 
 globalParameters::LaunchParams*  d_params = nullptr;
 globalParameters::LaunchParams*  params = nullptr; // hostside now
-int32_t                 width    = 400;
-int32_t                 height   = 400;
 
-GLFWwindow* window = sutil::initUI( "Eye Renderer 3.0", width, height );
-// outputBuffer would seem to be the width x height pixels of the window.
-
-sutil::CUDAOutputBuffer<uchar4>* outputBuffer;//(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
-
-sutil::GLDisplay gl_display; // Stores the frame buffer to swap in and out
+// An output buffer used by non-compound eye cameras. Annoyingly, CUDAOutputBuffer has lots of GL calls in it.
+sutil::CUDAOutputBuffer<uchar4>* outputBuffer = nullptr;
+// The width and height of the output buffer
+int32_t width = 0;
+int32_t height = 0;
 
 bool notificationsActive = true;
 
 void multicamAlloc()
 {
+    outputBuffer = new sutil::CUDAOutputBuffer<uchar4>(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
     scene = new MulticamScene{};
     params = new globalParameters::LaunchParams{};
-    outputBuffer = new sutil::CUDAOutputBuffer<uchar4>(static_cast<sutil::CUDAOutputBufferType>(BUFFER_TYPE), width, height);
 }
+
 void multicamDealloc()
 {
-    delete outputBuffer;
+    if (outputBuffer) { delete outputBuffer; }
     delete params;
     delete scene;
 }
 
 void initLaunchParams( const MulticamScene* _scene )
 {
-    params->frame_buffer = nullptr; // Will be set when output buffer is mapped
+    params->frame_buffer = nullptr;
     params->frame = 0;
     params->lighting = false;
 
@@ -147,21 +150,13 @@ void initLaunchParams( const MulticamScene* _scene )
 
     std::cout << "initLaunchParams(): params->lights.count  = " << params->lights.count << std::endl;
 
-    CUDA_CHECK( cudaMalloc(
-                    reinterpret_cast<void**>( &params->lights.data ),
-                    lights.size() * sizeof( Light::Point )
-                    ) );
-    CUDA_CHECK( cudaMemcpy(
-                    reinterpret_cast<void*>( params->lights.data ),
-                    lights.data(),
-                    lights.size() * sizeof( Light::Point ),
-                    cudaMemcpyHostToDevice
-                    ) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&params->lights.data), lights.size() * sizeof(Light::Point)));
+    CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(params->lights.data), lights.data(),
+                            lights.size() * sizeof(Light::Point), cudaMemcpyHostToDevice));
 
-    params->miss_color   = make_float3( 0.1f );
+    params->miss_color = make_float3( 0.1f );
 
-    //CUDA_CHECK( cudaStreamCreate( &stream ) );
-    CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &d_params ), sizeof( globalParameters::LaunchParams ) ) );
+    CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&d_params), sizeof(globalParameters::LaunchParams)));
 
     params->handle = _scene->traversableHandle();
 }
@@ -175,37 +170,38 @@ void handleCameraUpdate()
     scene->reconfigureSBTforCurrentCamera(false);
 }
 
-// Launch Optix threads to render a frame. Once this is done getCameraData() accesses the summed average values
-void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene* _scene )
+// Launch Optix threads to render a camera view. Once this is done getCameraData() accesses the
+// summed average values for a compound eye. Non-compound eye data is accessed with
+// getFramePointer()
+void launchFrame (MulticamScene* _scene )
 {
-    uchar4* result_buffer_data = output_buffer->map();
-    params->frame_buffer       = result_buffer_data;
+    if (outputBuffer && (outputBuffer->width() * outputBuffer->height() > 0)) {
+        params->frame_buffer = outputBuffer->map();
+    } else {
+        params->frame_buffer = nullptr;
+    }
 
     // d_params is a global pointer to GPU RAM, params is a global pointer to CPU-side RAM
-    CUDA_CHECK( cudaMemcpyAsync( reinterpret_cast<void*>( d_params ),
-                                 params,
-                                 sizeof( globalParameters::LaunchParams ),
-                                 cudaMemcpyHostToDevice,
-                                 0 // stream
-                    ) );
+    CUDA_CHECK(cudaMemcpyAsync(reinterpret_cast<void*>(d_params),
+                               params,
+                               sizeof(globalParameters::LaunchParams),
+                               cudaMemcpyHostToDevice,
+                               0)); // stream
 
-    if(_scene->hasCompoundEyes() && _scene->isCompoundEyeActive())
-    {
+    if (_scene->hasCompoundEyes() && _scene->isCompoundEyeActive()) {
         CompoundEye* camera = (CompoundEye*) _scene->getCamera();
 
         auto csbt = _scene->compoundSbt();
         // Launch the ommatidial renderer
         auto cpl = _scene->compoundPipeline();
-        auto ole = optixLaunch (cpl,                                 // pipeline
-                                0,                                   // stream
+        auto ole = optixLaunch (cpl,                               // pipeline
+                                0,                                 // stream
                                 reinterpret_cast<CUdeviceptr>( d_params ), // pipelineParams
                                 sizeof( globalParameters::LaunchParams ),  // pipelineParamsSize
-                                csbt,
+                                csbt,                              // shader buffer table
                                 camera->getOmmatidialCount(),      // launch width
                                 camera->getSamplesPerOmmatidium(), // launch height
-                                1                                  // launch depth
-            );
-        //std::cout << "Optix Launch error code: " << (int)ole << std::endl;
+                                1);                                // launch depth
         OPTIX_CHECK (ole);
 
         {
@@ -228,23 +224,24 @@ void launchFrame( sutil::CUDAOutputBuffer<uchar4>* output_buffer, MulticamScene*
             camera->averageRecordFrame();
             CUDA_SYNC_CHECK();
         }
+    } else {
+        // Launch non-compound render
+        if (width > 0 &&  height > 0) {
+            OPTIX_CHECK (optixLaunch (_scene->pipeline(),
+                                      0,             // stream
+                                      reinterpret_cast<CUdeviceptr>( d_params ),
+                                      sizeof( globalParameters::LaunchParams ),
+                                      _scene->sbt(),
+                                      width,  // launch width
+                                      height, // launch height
+                                      1));    // launch depth is 1
+        }
     }
 
-    // Launch render, but only if *required* as this can add slowness
-    if(_scene->enable_render_window == true) {
-        OPTIX_CHECK( optixLaunch(
-                         _scene->pipeline(),
-                         0,             // stream
-                         reinterpret_cast<CUdeviceptr>( d_params ),
-                         sizeof( globalParameters::LaunchParams ),
-                         _scene->sbt(),
-                         width,  // launch width
-                         height, // launch height
-                         1//_scene->getCamera()->samplesPerPixel // launch depth
-                         ) );
+    if (outputBuffer&& (outputBuffer->width() * outputBuffer->height() > 0)) {
+        outputBuffer->unmap();
     }
 
-    output_buffer->unmap();
     CUDA_SYNC_CHECK();
 }
 
@@ -262,34 +259,30 @@ void cleanup()
 //------------------------------------------------------------------------------
 // General Running
 //------------------------------------------------------------------------------
-void setVerbosity(bool v)
-{
-    notificationsActive = v;
-}
-void loadGlTFscene(const char* filepath)
+void setVerbosity (bool v) { notificationsActive = v; }
+
+void loadGlTFscene (const char* filepath)
 {
     if (scene == nullptr) { throw sutil::Exception ("loadGlTFscene exception: scene is nullptr"); }
     loadScene (filepath, *scene);
     scene->finalize();
     initLaunchParams (scene);
 }
-void setRenderSize(int w, int h)
+
+void setRenderSize (int w, int h)
 {
     width = w;
     height = h;
-    if(notificationsActive)
-        std::cout<<"[PyEye] Resizing rendering buffer to ("<<w<<", "<<h<<")."<<std::endl;
-    GLFWwindow* ctx = glfwGetCurrentContext();
-    if (ctx != window) { glfwMakeContextCurrent (window); }
-    outputBuffer->resize(width, height);
-    glfwMakeContextCurrent (ctx);
+    // Resize our non-compound eye output buffer here
+    outputBuffer->resize (width, height);
 }
-double renderFrame(void)
+
+double renderFrame()
 {
     handleCameraUpdate();
 
     auto then = std::chrono::steady_clock::now();
-    launchFrame( outputBuffer, scene );
+    launchFrame (scene);
     CUDA_SYNC_CHECK();
     std::chrono::duration<double, std::milli> render_time = std::chrono::steady_clock::now() - then;
 
@@ -299,137 +292,110 @@ double renderFrame(void)
 
     return(render_time.count());
 }
-void displayFrame(void)
-{
-    int framebuf_res_x = 0;   // The display's resolution (could be HDPI res)
-    int framebuf_res_y = 0;   //
-    glfwGetFramebufferSize( window, &framebuf_res_x, &framebuf_res_y );
 
-    GLFWwindow* ctx = glfwGetCurrentContext();
-    // Just in case the user just selected another window:
-    if (ctx != window) { glfwMakeContextCurrent (window); }
-    gl_display.display(
-        outputBuffer->width(),
-        outputBuffer->height(),
-        framebuf_res_x,
-        framebuf_res_y,
-        outputBuffer->getPBO()
-        );
-
-    // Swap the buffer
-    glfwSwapBuffers(window);
-    glfwMakeContextCurrent (ctx);
-}
-void saveFrameAs(const char* ppmFilename)
+void saveFrameAs (const char* ppmFilename)
 {
     sutil::ImageBuffer buffer;
     buffer.data = outputBuffer->getHostPointer();
     buffer.width = outputBuffer->width();
     buffer.height = outputBuffer->height();
     buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
-    sutil::displayBufferFile(ppmFilename, buffer, false);
-    if(notificationsActive)
-        std::cout<<"[PyEye] Saved render as '"<<ppmFilename<<"'"<<std::endl;
+
+    sutil::displayBufferFile (ppmFilename, buffer, false);
+
+    if (notificationsActive) {
+        std::cout << "[PyEye] Saved render as '" << ppmFilename << "'\n";
+    }
 }
-unsigned char* getFramePointer(void)
+
+unsigned char* getFramePointer()
 {
-    if(notificationsActive)
-        std::cout<<"[PyEye] Retrieving frame pointer..."<<std::endl;
+    if(notificationsActive) { std::cout << "[PyEye] Retrieving frame pointer...\n"; }
     return (unsigned char*)outputBuffer->getHostPointer();
 }
-void getFrame(unsigned char* frame)
+
+// Currently not revealed in libEyeRenderer.h...
+void getFrame (unsigned char* frame)
 {
-    if(notificationsActive)
-        std::cout<<"[PyEye] Retrieving frame..."<<std::endl;
-    size_t displaySize = outputBuffer->width()*outputBuffer->height();
-    for(size_t i = 0; i<displaySize; i++)
-    {
+    if(notificationsActive) { std::cout << "[PyEye] Retrieving frame...\n"; }
+    size_t displaySize = outputBuffer->width() * outputBuffer->height();
+    for (size_t i = 0; i < displaySize; i++) {
         unsigned char val = (unsigned char)(((float)i/(float)displaySize)*254);
         frame[displaySize*3 + 0] = val;
         frame[displaySize*3 + 1] = val;
         frame[displaySize*3 + 2] = val;
     }
 }
-void stop(void)
-{
-    if(notificationsActive)
-        std::cout<<"[PyEye] Cleaning eye renderer resources."<<std::endl;
-    sutil::cleanupUI(window);
-    cleanup();
-}
 
-// C-level only
-void * getWindowPointer()
+void stop()
 {
-    return (void*)window;
+    if (notificationsActive) {
+        std::cout<<"[PyEye] Cleaning eye renderer resources."<<std::endl;
+    }
+    cleanup();
+    // Maybe multicamDealloc()?
 }
 
 //------------------------------------------------------------------------------
 // Camera Control
 //------------------------------------------------------------------------------
-size_t getCameraCount()
-{
-    return(scene->getCameraCount());
-}
-void nextCamera(void)
-{
-    scene->nextCamera();
-}
-size_t getCurrentCameraIndex(void)
-{
-    return(scene->getCameraIndex());
-}
-const char* getCurrentCameraName(void)
-{
-    return(scene->getCamera()->getCameraName());
-}
-void previousCamera(void)
-{
-    scene->previousCamera();
-}
-void gotoCamera(int index)
-{
-    scene->setCurrentCamera(index);
-}
-bool gotoCameraByName(char* name)
+size_t getCameraCount() { return(scene->getCameraCount()); }
+
+void nextCamera() { scene->nextCamera(); }
+
+size_t getCurrentCameraIndex() { return(scene->getCameraIndex()); }
+
+const char* getCurrentCameraName() { return(scene->getCamera()->getCameraName()); }
+
+void previousCamera() { scene->previousCamera(); }
+
+void gotoCamera (int index) { scene->setCurrentCamera(index); }
+
+bool gotoCameraByName (char* name)
 {
     scene->setCurrentCamera(0);
-    for(auto i = 0u; i<scene->getCameraCount(); i++)
-    {
-        if(strcmp(name, scene->getCamera()->getCameraName()) == 0)
+    for (auto i = 0u; i<scene->getCameraCount(); i++) {
+        if (strcmp(name, scene->getCamera()->getCameraName()) == 0) {
             return true;
+        }
         scene->nextCamera();
     }
     return false;
 }
-void setCameraPosition(float x, float y, float z)
+
+void setCameraPosition (float x, float y, float z)
 {
     scene->getCamera()->setPosition(make_float3(x,y,z));
 }
-void getCameraPosition(float& x, float& y, float& z)
+
+void getCameraPosition (float& x, float& y, float& z)
 {
     const float3& camPos = scene->getCamera()->getPosition();
     x = camPos.x;
     y = camPos.y;
     z = camPos.z;
 }
-void setCameraLocalSpace(float lxx, float lxy, float lxz,
-                         float lyx, float lyy, float lyz,
-                         float lzx, float lzy, float lzz)
+
+void setCameraLocalSpace (float lxx, float lxy, float lxz,
+                          float lyx, float lyy, float lyz,
+                          float lzx, float lzy, float lzz)
 {
-    scene->getCamera()->setLocalSpace(make_float3(lxx, lxy, lxz),
-                                     make_float3(lyx, lyy, lyz),
-                                     make_float3(lzx, lzy, lzz));
+    scene->getCamera()->setLocalSpace (make_float3(lxx, lxy, lxz),
+                                       make_float3(lyx, lyy, lyz),
+                                       make_float3(lzx, lzy, lzz));
 }
-void rotateCameraAround(float angle, float x, float y, float z)
+
+void rotateCameraAround (float angle, float x, float y, float z)
 {
-    scene->getCamera()->rotateAround(angle,  make_float3(x,y,z));
+    scene->getCamera()->rotateAround (angle,  make_float3(x,y,z));
 }
-void rotateCameraLocallyAround(float angle, float x, float y, float z)
+
+void rotateCameraLocallyAround (float angle, float x, float y, float z)
 {
-    scene->getCamera()->rotateLocallyAround(angle,  make_float3(x,y,z));
+    scene->getCamera()->rotateLocallyAround (angle, make_float3(x,y,z));
 }
-void rotateCamerasAround(float angle, float x, float y, float z)
+
+void rotateCamerasAround (float angle, float x, float y, float z)
 {
     size_t cc = scene->getCameraCount();
     for (size_t i = 0; i < cc; ++i) {
@@ -437,36 +403,39 @@ void rotateCamerasAround(float angle, float x, float y, float z)
         scene->nextCamera();
     }
 }
-void rotateCamerasLocallyAround(float angle, float x, float y, float z)
+
+void rotateCamerasLocallyAround (float angle, float x, float y, float z)
 {
     size_t cc = scene->getCameraCount();
     for (size_t i = 0; i < cc; ++i) {
-        scene->getCamera()->rotateLocallyAround(angle,  make_float3(x,y,z));
+        scene->getCamera()->rotateLocallyAround (angle, make_float3(x,y,z));
         scene->nextCamera();
     }
 }
-void translateCamera(float x, float y, float z)
+
+void translateCamera (float x, float y, float z)
 {
     scene->getCamera()->move(make_float3(x, y, z));
 }
-void translateCameraLocally(float x, float y, float z)
+
+void translateCameraLocally (float x, float y, float z)
 {
     scene->getCamera()->moveLocally(make_float3(x, y, z));
 }
-void translateCamerasLocally(float x, float y, float z)
+
+void translateCamerasLocally (float x, float y, float z)
 {
     // For each camera in scene:
     size_t cc = scene->getCameraCount();
     for (size_t i = 0; i < cc; ++i) {
-        scene->getCamera()->moveLocally(make_float3(x, y, z));
+        scene->getCamera()->moveLocally (make_float3(x, y, z));
         scene->nextCamera();
     } // at end should have looped back to original cam
 }
-void resetCameraPose()
-{
-    scene->getCamera()->resetPose();
-}
-void setCameraPose(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
+
+void resetCameraPose() { scene->getCamera()->resetPose(); }
+
+void setCameraPose (float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
 {
     GenericCamera* c = scene->getCamera();
     c->resetPose();
@@ -508,10 +477,7 @@ void getCameraData (std::vector<std::array<float, 3>>& cameraData)
 //------------------------------------------------------------------------------
 // Ommatidial Camera Control
 //------------------------------------------------------------------------------
-bool isCompoundEyeActive(void)
-{
-    return scene->isCompoundEyeActive();
-}
+bool isCompoundEyeActive() { return scene->isCompoundEyeActive(); }
 
 std::string getEyeDataPath()
 {
@@ -519,46 +485,44 @@ std::string getEyeDataPath()
     return std::string("");
 }
 
-void setCurrentEyeSamplesPerOmmatidium(int s)
+void setCurrentEyeSamplesPerOmmatidium (int s)
 {
-    if(scene->isCompoundEyeActive())
-    {
+    if (scene->isCompoundEyeActive()) {
         ((CompoundEye*)scene->getCamera())->setSamplesPerOmmatidium(s);
     }
 }
-int getCurrentEyeSamplesPerOmmatidium(void)
+
+int getCurrentEyeSamplesPerOmmatidium()
 {
-    if(scene->isCompoundEyeActive())
-    {
+    if (scene->isCompoundEyeActive()) {
         return(((CompoundEye*)scene->getCamera())->getSamplesPerOmmatidium());
     }
     return -1;
 }
-void changeCurrentEyeSamplesPerOmmatidiumBy(int s)
+
+void changeCurrentEyeSamplesPerOmmatidiumBy (int s)
 {
-    if(scene->isCompoundEyeActive())
-    {
+    if (scene->isCompoundEyeActive()) {
         ((CompoundEye*)scene->getCamera())->changeSamplesPerOmmatidiumBy(s);
     }
 }
-size_t getCurrentEyeOmmatidialCount(void)
+
+size_t getCurrentEyeOmmatidialCount()
 {
-    if(scene->isCompoundEyeActive())
-    {
+    if (scene->isCompoundEyeActive()) {
         return ((CompoundEye*)scene->getCamera())->getOmmatidialCount();
     }
     return 0;
 }
-void setOmmatidia(OmmatidiumPacket* omms, size_t count)
+
+void setOmmatidia (OmmatidiumPacket* omms, size_t count)
 {
     // Break out if the current eye isn't compound
-    if(!scene->isCompoundEyeActive())
-        return;
+    if (!scene->isCompoundEyeActive()) { return; }
 
     // First convert the OmmatidiumPacket list into an array of Ommatidium objects
     std::vector<Ommatidium> ommVector(count);
-    for(size_t i = 0; i<count; i++)
-    {
+    for(size_t i = 0; i<count; i++) {
         OmmatidiumPacket& omm = omms[i];
         ommVector[i].relativePosition  = make_float3(omm.posX, omm.posY, omm.posZ);
         ommVector[i].relativeDirection = make_float3(omm.dirX, omm.dirY, omm.dirZ);
@@ -567,34 +531,36 @@ void setOmmatidia(OmmatidiumPacket* omms, size_t count)
     }
 
     // Actually set the new ommatidial structure
-    ((CompoundEye*)scene->getCamera())->setOmmatidia(ommVector.data(), count);
+    ((CompoundEye*)scene->getCamera())->setOmmatidia (ommVector.data(), count);
 }
-const char* getCurrentEyeDataPath(void)
+
+const char* getCurrentEyeDataPath()
 {
-    if(scene->isCompoundEyeActive())
-    {
+    if (scene->isCompoundEyeActive()) {
         return ((CompoundEye*)scene->getCamera())->eyeDataPath.c_str();
     }
     return "\0";
 }
-void setCurrentEyeShaderName(char* name)
+
+void setCurrentEyeShaderName (char* name)
 {
-    if(scene->isCompoundEyeActive())
-    {
-        ((CompoundEye*)scene->getCamera())->setShaderName(std::string(name)); // Set the shader
-        scene->reconfigureSBTforCurrentCamera(true); // Reconfigure for the new shader
+    if (scene->isCompoundEyeActive()) {
+        ((CompoundEye*)scene->getCamera())->setShaderName (std::string(name)); // Set the shader
+        scene->reconfigureSBTforCurrentCamera (true); // Reconfigure for the new shader
     }
 }
 
 bool isInsideHitGeometry(float x, float y, float z, char* name)
 {
-    return scene->isInsideHitGeometry(make_float3(x, y, z), std::string(name), false);//notificationsActive);
+    return scene->isInsideHitGeometry (make_float3(x, y, z), std::string(name), false);
 }
+
 float3 getGeometryMaxBounds(char* name)
 {
-    return scene->getGeometryMaxBounds(std::string(name));
+    return scene->getGeometryMaxBounds (std::string(name));
 }
+
 float3 getGeometryMinBounds(char* name)
 {
-    return scene->getGeometryMinBounds(std::string(name));
+    return scene->getGeometryMinBounds (std::string(name));
 }

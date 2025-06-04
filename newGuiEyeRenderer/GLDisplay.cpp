@@ -27,9 +27,39 @@
 //
 
 #include <sutil/Exception.h>
-#include <sutil/GLDisplay.h>
+#include "GLDisplay.h"
 
 #include <iostream>
+
+const char* glhelp::getGLErrorString (GLenum error)
+{
+    switch( error )
+    {
+    case GL_NO_ERROR:            return "No error";
+    case GL_INVALID_ENUM:        return "Invalid enum";
+    case GL_INVALID_VALUE:       return "Invalid value";
+    case GL_INVALID_OPERATION:   return "Invalid operation";
+        //case GL_STACK_OVERFLOW:      return "Stack overflow";
+        //case GL_STACK_UNDERFLOW:     return "Stack underflow";
+    case GL_OUT_OF_MEMORY:       return "Out of memory";
+        //case GL_TABLE_TOO_LARGE:     return "Table too large";
+    default:                     return "Unknown GL error";
+    }
+}
+
+void glhelp::checkGLError()
+{
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        std::ostringstream oss;
+        do {
+            oss << "GL error: " << getGLErrorString (err) << "\n";
+            err = glGetError();
+        } while (err != GL_NO_ERROR);
+
+        throw sutil::Exception (oss.str().c_str());
+    }
+}
 
 namespace sutil
 {

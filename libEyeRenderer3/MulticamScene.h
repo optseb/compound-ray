@@ -117,7 +117,7 @@ public:
         float p1, p2, p3;
     };
 
-    ~MulticamScene();// Destructor
+    ~MulticamScene();
 
     // Obtain access to a mesh of positions (to scan over a landscape)
     const std::vector<cuda::BufferView<float3> >* getMeshPositions (size_t idx)
@@ -211,9 +211,6 @@ public:
 
     // The eye data file, specified as "compound-structure" for compound eyes
     std::string eye_data_path = "";
-
-    // Rendering the OpenGL window costs time, make it optional
-    bool enable_render_window = true;
 
 private:
     void createPTXModule();

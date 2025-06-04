@@ -145,7 +145,7 @@ find_package(CUDA 5.0 REQUIRED)
 # Present the CUDA_64_BIT_DEVICE_CODE on the default set of options.
 mark_as_advanced(CLEAR CUDA_64_BIT_DEVICE_CODE)
 
-SET(BUFFER_TYPE "BUFFER_TYPE_GL_INTEROP" CACHE STRING "Which type of buffer to use, can be BUFFER_TYPE_CUDA_DEVICE, BUFFER_TYPE_GL_INTEROP, BUFFER_TYPE_ZERO_COPY, BUFFER_TYPE_CUDA_P2P. Defaults to BUFFER_TYPE_GL_INTEROP. See docs/indepth-install-notes.md for further details.")
+SET(BUFFER_TYPE "BUFFER_TYPE_ZERO_COPY" CACHE STRING "Which type of buffer to use, can be BUFFER_TYPE_CUDA_DEVICE or BUFFER_TYPE_ZERO_COPY. Defaults to BUFFER_TYPE_ZERO_COPY. See docs/indepth-install-notes.md for further details but note that Seb has disabled GL_INTEROP/P2P.")
 message(STATUS "Buffer Type set to ${BUFFER_TYPE}")
 add_definitions("-D${BUFFER_TYPE}")
 
@@ -411,8 +411,8 @@ endfunction()
 #  List of subprojects (usually executables) in this project.
 #
 
-set (glad_target glad)
-set (imgui_target imgui)
+set (glad_target glad) # Used by newGuiEyeRenderer
+
 set (sutil_target sutil_7_sdk)
 
 # Extra link for your cuda toolkit in /usr/local

@@ -59,10 +59,23 @@
 #include <iomanip>
 #include <iostream>
 
+// Using a handful of GL definitions
+#ifndef GL_MIRRORED_REPEAT
+# define GL_MIRRORED_REPEAT 0x8370
+#endif
+
+#ifndef GL_CLAMP_TO_EDGE
+# define GL_CLAMP_TO_EDGE 0x812F
+#endif
+
+#ifndef GL_NEAREST
+# define GL_NEAREST 0x2600
+#endif
+
 namespace
 {
     // Compile time debugging choices
-    static constexpr bool debug_gltf = true;
+    static constexpr bool debug_gltf = false;
     static constexpr bool debug_cameras = false;
     static constexpr bool debug_pipeline = true;
 
@@ -78,10 +91,13 @@ namespace
 
     typedef Record<globalParameters::HitGroupData> HitGroupRecord;
 
+    static constexpr bool debug_allow_context_log = false;
     void context_log_cb( unsigned int level, const char* tag, const char* message, void* /*cbdata */)
     {
-        std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: "
-                  << message << "\n";
+        if constexpr (debug_allow_context_log) {
+            std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: "
+                      << message << "\n";
+        }
     }
 
     static constexpr bool debug_bufferview = false;
