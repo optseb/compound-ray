@@ -77,7 +77,7 @@ namespace
     // Compile time debugging choices
     static constexpr bool debug_gltf = false;
     static constexpr bool debug_cameras = false;
-    static constexpr bool debug_pipeline = true;
+    static constexpr bool debug_pipeline = false;
 
     float3 make_float3_from_double( double x, double y, double z )
     {
@@ -1631,7 +1631,10 @@ void MulticamScene::createProgramGroups()
         compound_prog_group_desc.raygen.module            = m_ptx_module;
         compound_prog_group_desc.raygen.entryFunctionName = "__raygen__ommatidium";
 
-        std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for " << compound_prog_group_desc.raygen.entryFunctionName << std::endl;
+        if constexpr (debug_pipeline) {
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for "
+                      << compound_prog_group_desc.raygen.entryFunctionName << std::endl;
+        }
         OPTIX_CHECK_LOG( optixProgramGroupCreate(
                              m_context,
                              &compound_prog_group_desc,
@@ -1649,7 +1652,10 @@ void MulticamScene::createProgramGroups()
         raygen_prog_group_desc.raygen.module            = m_ptx_module;
         raygen_prog_group_desc.raygen.entryFunctionName = GenericCamera::DEFAULT_RAYGEN_PROGRAM;
 
-        std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for " << raygen_prog_group_desc.raygen.entryFunctionName << std::endl;
+        if constexpr (debug_pipeline) {
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for "
+                      << raygen_prog_group_desc.raygen.entryFunctionName << std::endl;
+        }
         OPTIX_CHECK_LOG( optixProgramGroupCreate(
                              m_context,
                              &raygen_prog_group_desc,
