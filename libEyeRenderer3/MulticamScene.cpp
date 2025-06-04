@@ -64,7 +64,7 @@ namespace
     // Compile time debugging choices
     static constexpr bool debug_gltf = true;
     static constexpr bool debug_cameras = false;
-    static constexpr bool debug_pipeline = false;
+    static constexpr bool debug_pipeline = true;
 
     float3 make_float3_from_double( double x, double y, double z )
     {
@@ -1615,6 +1615,7 @@ void MulticamScene::createProgramGroups()
         compound_prog_group_desc.raygen.module            = m_ptx_module;
         compound_prog_group_desc.raygen.entryFunctionName = "__raygen__ommatidium";
 
+        std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for " << compound_prog_group_desc.raygen.entryFunctionName << std::endl;
         OPTIX_CHECK_LOG( optixProgramGroupCreate(
                              m_context,
                              &compound_prog_group_desc,
@@ -1632,6 +1633,7 @@ void MulticamScene::createProgramGroups()
         raygen_prog_group_desc.raygen.module            = m_ptx_module;
         raygen_prog_group_desc.raygen.entryFunctionName = GenericCamera::DEFAULT_RAYGEN_PROGRAM;
 
+        std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for " << raygen_prog_group_desc.raygen.entryFunctionName << std::endl;
         OPTIX_CHECK_LOG( optixProgramGroupCreate(
                              m_context,
                              &raygen_prog_group_desc,
@@ -1724,7 +1726,7 @@ void MulticamScene::createProgramGroups()
 void MulticamScene::createPipeline()
 {
     if constexpr (debug_pipeline == true) {
-        std::cout << "Generating Projection pipeline..." << std::endl;
+        std::cout << "MulticamScene::createPipeline(): Generating Projection pipeline..." << std::endl;
     }
     OptixProgramGroup program_groups[] =
     {
@@ -1755,7 +1757,7 @@ void MulticamScene::createPipeline()
 void MulticamScene::createCompoundPipeline()
 {
     if constexpr (debug_pipeline == true) {
-        std::cout << "Generating Compound pipeline..." << std::endl;
+        std::cout << "MulticamScene::createCompoundPipeline(): Generating Compound pipeline..." << std::endl;
     }
     OptixProgramGroup program_groups[] =
     {
@@ -1819,7 +1821,9 @@ void MulticamScene::reconfigureSBTforCurrentCamera(bool force)
 
         optixPipelineDestroy(m_pipeline);
         createPipeline();
-    }else{
+        //createCompoundPipeline(); // but only if something?
+
+    } else {
         // Just sync the camera's on-device memory (but only on a host-side change):
         c->packAndCopyRecordIfChanged(m_raygen_prog_group);
     }
