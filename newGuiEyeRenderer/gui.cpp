@@ -20,10 +20,11 @@
 bool dirtyUI = true; // a flag to keep track of if the UI has changed in any way
 BasicController controller;
 
-int32_t win_width = 400;
-int32_t win_height = 400;
+// An initial width and height
+constexpr int32_t win_width = 400;
+constexpr int32_t win_height = 400;
 
-// These are from libEyeRenderer
+// These are from libEyeRenderer and are runtime-mutable
 extern int32_t width;
 extern int32_t height;
 
@@ -65,7 +66,7 @@ GLuint getPBO (sutil::CUDAOutputBuffer<PIXEL_FORMAT>* buf_ptr)
                                 buffer_size,
                                 static_cast<void*>(buf_ptr->m_host_zcopy_pixels),
                                 GL_STREAM_DRAW));
-        GL_CHECK( glBindBuffer( GL_ARRAY_BUFFER, 0 ) );
+        GL_CHECK (glBindBuffer (GL_ARRAY_BUFFER, 0));
     }
 
     return _pbo;
@@ -183,7 +184,7 @@ void displayFrame()
     if (outputBuffer != nullptr) {
         gl_display->display (outputBuffer->width(), outputBuffer->height(),
                              fb_res_x, fb_res_y,
-                             getPBO (outputBuffer));
+                             getPBO<uchar4> (outputBuffer));
     }
     glfwSwapBuffers (window);
 }
