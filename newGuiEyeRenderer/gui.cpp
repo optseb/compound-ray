@@ -87,7 +87,6 @@ static void errorCallback (int error, const char* description)
 
 GLFWwindow* initGLFW (const char* window_title, int width, int height, bool visible = true)
 {
-    std::cout << __func__ << "("<<window_title<<","<<width<<","<<height<<") called\n";
     glfwSetErrorCallback (errorCallback);
     if(!glfwInit()) { throw sutil::Exception ("Failed to initialize GLFW"); }
 

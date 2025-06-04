@@ -148,8 +148,6 @@ void initLaunchParams( const MulticamScene* _scene )
 
     params->lights.count  = static_cast<uint32_t>( lights.size() );
 
-    std::cout << "initLaunchParams(): params->lights.count  = " << params->lights.count << std::endl;
-
     CUDA_CHECK (cudaMalloc (reinterpret_cast<void**>(&params->lights.data), lights.size() * sizeof(Light::Point)));
     CUDA_CHECK (cudaMemcpy (reinterpret_cast<void*>(params->lights.data), lights.data(),
                             lights.size() * sizeof(Light::Point), cudaMemcpyHostToDevice));
