@@ -102,7 +102,7 @@ __device__ float3 linearize( float3 c )
 
 //------------------------------------------------------------------------------
 //
-//
+//      SHARED PROCEDURES
 //
 //------------------------------------------------------------------------------
 
@@ -188,6 +188,18 @@ __forceinline__ __device__ uchar4 make_color( const float3&  c )
             );
 }
 
+// Projects the 2D coordinates of the display window to spherical coordinates
+__forceinline__ __device__ const float3 to_unit_sphere(const uint3& launch_idx, const uint3& launch_dims)
+{
+  const float2 d = 2.0f * make_float2(
+          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
+          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
+          ) - 1.0f;
+  const float2 angles = d * make_float2(M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
+  const float cosY = cos(angles.y);
+  return make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+}
+
 
 //------------------------------------------------------------------------------
 //
@@ -250,19 +262,12 @@ extern "C" __global__ void __raygen__panoramic()
     //
     const float2 subpixel_jitter = make_float2(0.0f);// No subpixel jitter here
 
-    const float2 d = 2.0f * make_float2(
-            ( static_cast<float>( launch_idx.x ) + subpixel_jitter.x ) / static_cast<float>( launch_dims.x ),
-            ( static_cast<float>( launch_idx.y ) + subpixel_jitter.y ) / static_cast<float>( launch_dims.y )
-            ) - 1.0f;
-
-    const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-    const float cosY = cos(angles.y);
-    const float3 originalDir = make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+    const float3 unitSphereVector = to_unit_sphere(launch_idx, launch_dims);
     const float3 lxAxis = posedData->localSpace.xAxis;
     const float3 lyAxis = posedData->localSpace.yAxis;
     const float3 lzAxis = posedData->localSpace.zAxis;
-    const float3 ray_direction = normalize(originalDir.x * lxAxis + originalDir.y * lyAxis + originalDir.z * lzAxis);
-    //const float3 ray_direction = normalize(posedData->localSpace.transform(originalDir));
+    const float3 ray_direction = normalize(unitSphereVector.x * lxAxis + unitSphereVector.y * lyAxis + unitSphereVector.z * lzAxis);
+    //const float3 ray_direction = normalize(posedData->localSpace.transform(unitSphereVector));
     const float3 ray_origin    = posedData->position + ray_direction*posedData->specializedData.startRadius;
 
     //
@@ -418,22 +423,16 @@ extern "C" __global__ void __raygen__compound_projection_spherical_positionwise(
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
   // Project the 2D coordinates of the display window to spherical coordinates
-  const float2 d = 2.0f * make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          ) - 1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+  const float3 unitSphereVector = to_unit_sphere(launch_idx, launch_dims);
 
   // Finds the closest ommatidium (NOTE: This is explicitly based on the position of the base of the ommatidium)
   Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativePosition, unitSpherePosition)/(length(allOmmatidia->relativePosition)*length(unitSpherePosition)));
+  float smallestAngle = acos(dot(allOmmatidia->relativePosition, unitSphereVector)/(length(allOmmatidia->relativePosition)*length(unitSphereVector)));
   float angle;
   uint32_t i, closestIndex = 0;
   for(i = 1; i<ommatidialCount; i++)
   {
-    angle = acos(dot((allOmmatidia+i)->relativePosition, unitSpherePosition)/(length((allOmmatidia+i)->relativePosition)*length(unitSpherePosition)));
+    angle = acos(dot((allOmmatidia+i)->relativePosition, unitSphereVector)/(length((allOmmatidia+i)->relativePosition)*length(unitSphereVector)));
     if(angle < smallestAngle)
     {
       smallestAngle = angle;
@@ -460,22 +459,16 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
   // Project the 2D coordinates of the display window to spherical coordinates
-  const float2 d = 2.0f * make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          ) - 1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+  const float3 unitSphereVector = to_unit_sphere(launch_idx, launch_dims);
 
   // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
   Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
+  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSphereVector)/(length(allOmmatidia->relativeDirection)*length(unitSphereVector)));
   float angle;
   uint32_t i, closestIndex = 0;
   for(i = 1; i<ommatidialCount; i++)
   {
-    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
+    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSphereVector)/(length((allOmmatidia+i)->relativeDirection)*length(unitSphereVector)));
     if(angle < smallestAngle)
     {
       smallestAngle = angle;
@@ -515,18 +508,18 @@ extern "C" __global__ void __raygen__compound_projection_spherical_split_orienta
   const float2 d = modded*2.0 -1.0f;
   const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
   const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+  const float3 unitSphereVector= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
 
   // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
   // (ALSO NOTE: In this, the "split" version, those points on the positive x axis are considered only by pixels on the right,
   //             the inverse is true of those on the left)
   Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
+  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSphereVector)/(length(allOmmatidia->relativeDirection)*length(unitSphereVector)));
   float angle;
   uint32_t i, closestIndex = 0;
   for(i = 1; i<ommatidialCount; i++)
   {
-    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
+    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSphereVector)/(length((allOmmatidia+i)->relativeDirection)*length(unitSphereVector)));
     if( (((allOmmatidia+i)->relativePosition.x > 0.f && uv.x > 0.5f) || ((allOmmatidia+i)->relativePosition.x < 0.f && uv.x < 0.5f))
         && angle < smallestAngle)
     {
@@ -555,22 +548,16 @@ extern "C" __global__ void __raygen__compound_projection_spherical_orientationwi
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
   // Project the 2D coordinates of the display window to spherical coordinates
-  const float2 d = 2.0f * make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          ) - 1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+  const float3 unitSphereVector = to_unit_sphere(launch_idx, launch_dims);
 
   // Finds the closest ommatidium (NOTE: This is explicitly based on orientation)
   Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSpherePosition)/(length(allOmmatidia->relativeDirection)*length(unitSpherePosition)));
+  float smallestAngle = acos(dot(allOmmatidia->relativeDirection, unitSphereVector)/(length(allOmmatidia->relativeDirection)*length(unitSphereVector)));
   float angle;
   uint32_t i, closestIndex = 0;
   for(i = 1; i<ommatidialCount; i++)
   {
-    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSpherePosition)/(length((allOmmatidia+i)->relativeDirection)*length(unitSpherePosition)));
+    angle = acos(dot((allOmmatidia+i)->relativeDirection, unitSphereVector)/(length((allOmmatidia+i)->relativeDirection)*length(unitSphereVector)));
     if(angle < smallestAngle)
     {
       smallestAngle = angle;
@@ -607,22 +594,16 @@ extern "C" __global__ void __raygen__compound_projection_spherical_positionwise_
   const size_t ommatidialCount = posedData->specializedData.ommatidialCount;
 
   // Project the 2D coordinates of the display window to spherical coordinates
-  const float2 d = 2.0f * make_float2(
-          static_cast<float>( launch_idx.x ) / static_cast<float>( launch_dims.x ),
-          static_cast<float>( launch_idx.y ) / static_cast<float>( launch_dims.y )
-          ) - 1.0f;
-  const float2 angles = d * make_float2(-M_PIf, M_PIf/2.0f) + make_float2(M_PIf/2.0f, 0.0f);
-  const float cosY = cos(angles.y);
-  const float3 unitSpherePosition= make_float3(cos(angles.x)*cosY, sin(angles.y), sin(angles.x)*cosY);
+  const float3 unitSphereVector = to_unit_sphere(launch_idx, launch_dims);
 
   // Finds the closest ommatidium (NOTE: This is explicitly based on the position of the base of the ommatidium)
   Ommatidium* allOmmatidia = (Ommatidium*)(posedData->specializedData.d_ommatidialArray);// List of all ommatidia
-  float smallestAngle = acos(dot(allOmmatidia->relativePosition, unitSpherePosition)/(length(allOmmatidia->relativePosition)*length(unitSpherePosition)));
+  float smallestAngle = acos(dot(allOmmatidia->relativePosition, unitSphereVector)/(length(allOmmatidia->relativePosition)*length(unitSphereVector)));
   float angle;
   uint32_t i, closestIndex = 0;
   for(i = 1; i<ommatidialCount; i++)
   {
-    angle = acos(dot((allOmmatidia+i)->relativePosition, unitSpherePosition)/(length((allOmmatidia+i)->relativePosition)*length(unitSpherePosition)));
+    angle = acos(dot((allOmmatidia+i)->relativePosition, unitSphereVector)/(length((allOmmatidia+i)->relativePosition)*length(unitSphereVector)));
     if(angle < smallestAngle)
     {
       smallestAngle = angle;
@@ -678,8 +659,8 @@ extern "C" __global__ void __raygen__ommatidium()
   Ommatidium ommatidium = *(allOmmatidia + ommatidialIndex);// This ommatidium
 
   // Get the relative direction of the ommatidial axis
-  const float3 relativeOmmatidialAxis = ommatidium.relativeDirection;
-  const float3 relativeOmmatidialPosition = ommatidium.relativePosition;
+  const float3 relativeOmmatidialAxis = ommatidium.relativeDirection * make_float3(-1,1,1);
+  const float3 relativeOmmatidialPosition = ommatidium.relativePosition * make_float3(-1,1,1);
 
   curandState localState; // A local copy of the cuRand state (to be) stored in shared memory
   curandState& sharedState = ((curandState*)(posedData.specializedData.d_randomStates))[id]; // A reference to the original cuRand state stored in shared memory

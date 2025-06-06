@@ -332,7 +332,15 @@ namespace
                 while(std::getline(eyeDataFile, line))
                 {
                     std::vector<std::string> splitData = splitString(line, " ");// position, direction, angle, offset
-                    Ommatidium o = {{std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2])}, {std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5])}, std::stof(splitData[6]), std::stof(splitData[7]) };
+                    Ommatidium o = {{std::stof(splitData[0]), // Posisition
+                                     std::stof(splitData[1]),
+                                     std::stof(splitData[2])},
+                                    {std::stof(splitData[3]), // Direction
+                                     std::stof(splitData[4]),
+                                     std::stof(splitData[5])},
+                                     std::stof(splitData[6]), // Angle
+                                     std::stof(splitData[7]) // Offset
+                                    };
                     ommVector.push_back(o);
                     ommCount++;
                 }
