@@ -951,7 +951,7 @@ void MulticamScene::addImage(
                                     0,           // Y offset
                                     data,        // source
                                     pitch,       // source pitch
-                                    width,       // width
+                                    pitch,       // width
                                     height,      // height
                                     cudaMemcpyHostToDevice) );
     m_images.push_back( cuda_array );
