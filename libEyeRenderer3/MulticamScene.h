@@ -212,6 +212,10 @@ public:
     // The eye data file, specified as "compound-structure" for compound eyes
     std::string eye_data_path = "";
 
+    // The newGuiEyeRenderer requires an additional optix pipeline for the panoramic
+    // rendering and ALSO to render compound eyes.
+    bool require_noncompound_pipeline = false;
+
 private:
     void createPTXModule();
     void createProgramGroups();

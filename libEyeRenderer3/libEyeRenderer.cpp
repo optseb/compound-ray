@@ -222,18 +222,18 @@ void launchFrame (MulticamScene* _scene )
             camera->averageRecordFrame();
             CUDA_SYNC_CHECK();
         }
-    } else {
-        // Launch non-compound render
-        if (width > 0 &&  height > 0) {
-            OPTIX_CHECK (optixLaunch (_scene->pipeline(),
-                                      0,             // stream
-                                      reinterpret_cast<CUdeviceptr>( d_params ),
-                                      sizeof( globalParameters::LaunchParams ),
-                                      _scene->sbt(),
-                                      width,  // launch width
-                                      height, // launch height
-                                      1));    // launch depth is 1
-        }
+    }
+
+    // Launch non-compound render (if required)
+    if (_scene->require_noncompound_pipeline == true && width > 0 && height > 0) {
+        OPTIX_CHECK (optixLaunch (_scene->pipeline(),
+                                  0,      // stream
+                                  reinterpret_cast<CUdeviceptr>(d_params),
+                                  sizeof(globalParameters::LaunchParams),
+                                  _scene->sbt(),
+                                  width,  // launch width
+                                  height, // launch height
+                                  1));    // launch depth is 1
     }
 
     if (outputBuffer&& (outputBuffer->width() * outputBuffer->height() > 0)) {
@@ -310,6 +310,11 @@ unsigned char* getFramePointer()
 {
     if(notificationsActive) { std::cout << "[PyEye] Retrieving frame pointer...\n"; }
     return (unsigned char*)outputBuffer->getHostPointer();
+}
+
+void setRequireNoncompoundPipeline (const bool require_ncp)
+{
+    scene->require_noncompound_pipeline = require_ncp;
 }
 
 // Currently not revealed in libEyeRenderer.h...

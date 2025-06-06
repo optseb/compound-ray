@@ -48,6 +48,8 @@ extern "C"
     void saveFrameAs (const char* ppmFilename);
     // Retrieves a pointer to the frame data
     unsigned char* getFramePointer();
+    // Set if the non compound eye pipeline is required
+    void setRequireNoncompoundPipeline (const bool require_ncp);
 
     // Camera control
 

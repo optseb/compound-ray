@@ -198,6 +198,9 @@ int main (int argc, char* argv[])
     // Allocates a scene, launch params and output buffer in libEyeRenderer
     multicamAlloc();
 
+    // We DO require the noncompound OptiX pipeline in this program:
+    setRequireNoncompoundPipeline (true);
+
     gl_display = new sutil::GLDisplay();
 
     // Parse Inputs
