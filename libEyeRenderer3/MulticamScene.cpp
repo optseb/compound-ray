@@ -76,7 +76,7 @@ namespace
 {
     // Compile time debugging choices
     static constexpr bool debug_gltf = false;
-    static constexpr bool debug_cameras = false;
+    static constexpr bool debug_cameras = true;
     static constexpr bool debug_pipeline = false;
 
     float3 make_float3_from_double( double x, double y, double z )
@@ -250,6 +250,12 @@ namespace
             const float3 upAxis      = make_float3( node_xform*make_float4_from_double( 0.0f, 1.0f,  0.0f, 0.0f ) );
             const float3 forwardAxis = make_float3( node_xform*make_float4_from_double( 0.0f, 0.0f, -1.0f, 0.0f ) );
             const float3 rightAxis   = make_float3( node_xform*make_float4_from_double( 1.0f, 0.0f,  0.0f, 0.0f ) );
+
+            if constexpr (debug_cameras == true) {
+                std::cout << "\tUP axis: (" << upAxis.x <<"," << upAxis.y << "," << upAxis.z << ")" << std::endl;
+                std::cout << "\tFWD axis: (" << forwardAxis.x <<"," << forwardAxis.y << "," << forwardAxis.z << ")" << std::endl;
+                std::cout << "\tR axis: (" << rightAxis.x <<"," << rightAxis.y << "," << rightAxis.z << ")" << std::endl;
+            }
 
             const float3 eye     = make_float3( node_xform*make_float4_from_double( 0.0f, 0.0f,  0.0f, 1.0f ) );
             const float  yfov   = static_cast<float>( gltf_camera.perspective.yfov ) * 180.0f / static_cast<float>( M_PI );
