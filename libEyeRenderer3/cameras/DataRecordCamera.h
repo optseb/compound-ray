@@ -129,8 +129,6 @@ protected:
     LocalSpace& ls = sbtRecord.data.localSpace; // Convenience reference
 
 private:
-    static const LocalSpace BASE_LOCALSPACE;// A base localspace to use for rotations.
-
     CUdeviceptr d_record = 0;// Stores the pointer to the SBT record
 
     // Change tracking duplicates (done by keeping an old copy and comparing)
