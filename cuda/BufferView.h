@@ -28,9 +28,10 @@
 
 #pragma once
 
-#include <sutil/Preprocessor.h>
-
 #include <stdint.h>
+#include <cuda.h>
+#include <optix.h>
+#include <sutil/Preprocessor.h>
 
 namespace cuda
 {

@@ -59,12 +59,25 @@
 #include <iomanip>
 #include <iostream>
 
+// Using a handful of GL definitions
+#ifndef GL_MIRRORED_REPEAT
+# define GL_MIRRORED_REPEAT 0x8370
+#endif
+
+#ifndef GL_CLAMP_TO_EDGE
+# define GL_CLAMP_TO_EDGE 0x812F
+#endif
+
+#ifndef GL_NEAREST
+# define GL_NEAREST 0x2600
+#endif
+
 namespace
 {
     // Compile time debugging choices
-    static constexpr bool debug_gltf = true;
+    static constexpr bool debug_gltf = false;
     static constexpr bool debug_cameras = false;
-    static constexpr bool debug_pipeline = true;
+    static constexpr bool debug_pipeline = false;
 
     float3 make_float3_from_double( double x, double y, double z )
     {
@@ -78,10 +91,13 @@ namespace
 
     typedef Record<globalParameters::HitGroupData> HitGroupRecord;
 
+    static constexpr bool debug_allow_context_log = false;
     void context_log_cb( unsigned int level, const char* tag, const char* message, void* /*cbdata */)
     {
-        std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: "
-                  << message << "\n";
+        if constexpr (debug_allow_context_log) {
+            std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: "
+                      << message << "\n";
+        }
     }
 
     static constexpr bool debug_bufferview = false;
@@ -943,7 +959,7 @@ void MulticamScene::addImage(
                                     0,           // Y offset
                                     data,        // source
                                     pitch,       // source pitch
-                                    width,       // width
+                                    pitch,       // width
                                     height,      // height
                                     cudaMemcpyHostToDevice) );
     m_images.push_back( cuda_array );
@@ -1623,7 +1639,10 @@ void MulticamScene::createProgramGroups()
         compound_prog_group_desc.raygen.module            = m_ptx_module;
         compound_prog_group_desc.raygen.entryFunctionName = "__raygen__ommatidium";
 
-        std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for " << compound_prog_group_desc.raygen.entryFunctionName << std::endl;
+        if constexpr (debug_pipeline) {
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for "
+                      << compound_prog_group_desc.raygen.entryFunctionName << std::endl;
+        }
         OPTIX_CHECK_LOG( optixProgramGroupCreate(
                              m_context,
                              &compound_prog_group_desc,
@@ -1641,7 +1660,10 @@ void MulticamScene::createProgramGroups()
         raygen_prog_group_desc.raygen.module            = m_ptx_module;
         raygen_prog_group_desc.raygen.entryFunctionName = GenericCamera::DEFAULT_RAYGEN_PROGRAM;
 
-        std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for " << raygen_prog_group_desc.raygen.entryFunctionName << std::endl;
+        if constexpr (debug_pipeline) {
+            std::cout << "MulticamScene::createProgramGroups(): optixProgramGroupCreate for "
+                      << raygen_prog_group_desc.raygen.entryFunctionName << std::endl;
+        }
         OPTIX_CHECK_LOG( optixProgramGroupCreate(
                              m_context,
                              &raygen_prog_group_desc,

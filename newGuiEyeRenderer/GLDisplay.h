@@ -37,6 +37,40 @@
 
 #include <sutil/sutil.h>
 #include <sutil/sutilapi.h>
+#include <sutil/Exception.h>
+
+namespace glhelp
+{
+    const char* getGLErrorString (GLenum error);
+    void checkGLError();
+} // namespace glhelp
+
+// GL error-checking macro
+#define GL_CHECK(call)                                                  \
+do {                                                                    \
+    call;                                                               \
+    GLenum err = glGetError();                                          \
+    if (err != GL_NO_ERROR) {                                           \
+        std::stringstream ss;                                           \
+        ss << "GL error " <<  glhelp::getGLErrorString( err ) << " at " \
+           << __FILE__  << "(" <<  __LINE__  << "): " << #call          \
+           << std::endl;                                                \
+        std::cerr << ss.str() << std::endl;                             \
+        throw sutil::Exception( ss.str().c_str() );                     \
+    }                                                                   \
+} while (0)
+
+#define GL_CHECK_ERRORS( )                                              \
+do {                                                                    \
+    GLenum err = glGetError();                                          \
+    if (err != GL_NO_ERROR) {                                           \
+        std::stringstream ss;                                           \
+        ss << "GL error " <<  glhelp::getGLErrorString( err ) << " at " \
+           << __FILE__  << "(" <<  __LINE__  << ")";                    \
+        std::cerr << ss.str() << std::endl;                             \
+        throw sutil::Exception (ss.str().c_str());                      \
+    }                                                                   \
+} while (0)
 
 namespace sutil
 {
