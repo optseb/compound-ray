@@ -123,6 +123,13 @@ public:
         return nullptr;
     }
 
+    void getLocalSpace (float3& xAxis, float3& yAxis, float3& zAxis)
+    {
+        xAxis = sbtRecord.data.localSpace.xAxis;
+        yAxis = sbtRecord.data.localSpace.yAxis;
+        zAxis = sbtRecord.data.localSpace.zAxis;
+    }
+
 protected:
     RaygenRecord<RaygenPosedContainer<T>> sbtRecord; // The sbtRecord associated with this camera
     T& specializedData = sbtRecord.data.specializedData; // Convenience reference
