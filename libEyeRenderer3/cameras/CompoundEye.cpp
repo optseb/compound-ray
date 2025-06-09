@@ -84,6 +84,12 @@ void CompoundEye::zeroRecordFrame()
 
 void CompoundEye::copyOmmatidia(Ommatidium* ommatidia)
 {
+    // Make copy to m_omm before the copy to GPU RAM
+    this->m_omm.resize (specializedData.ommatidialCount);
+    for (size_t i = 0; i < specializedData.ommatidialCount; ++i) {
+        this->m_omm[i] = ommatidia[i];
+    }
+
     CUDA_CHECK( cudaMemcpy(
                     reinterpret_cast<void*>(specializedData.d_ommatidialArray),
                     ommatidia,

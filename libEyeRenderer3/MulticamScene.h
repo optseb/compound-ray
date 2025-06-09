@@ -134,7 +134,7 @@ public:
     // Return index of the added camera
     int addCamera  ( GenericCamera* cameraPtr  );
     // Returns the position of the compound camera in the array for later reference
-    uint32_t addCompoundCamera  (int camera_index, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec);
+    uint32_t addCompoundCamera  (int camera_index, CompoundEye* cameraPtr);
     uint32_t addMesh    ( std::shared_ptr<MeshGroup> mesh )    {
         m_meshes.push_back( mesh );
         return (this->m_meshes.size() - 1u);
@@ -206,8 +206,6 @@ public:
     std::string                          m_backgroundShader         = "__miss__default_background";
 
     std::vector<sutil::hitscan::TriangleMesh>         m_hitboxMeshes; // Stores all triangle meshes public, because why the hell not?
-    // The CPU side vector of ommatidia used to create each CompoundEye in m_compoundEyes
-    std::map<int, std::vector<Ommatidium>> m_ommVecs;
 
     // The eye data file, specified as "compound-structure" for compound eyes
     std::string eye_data_path = "";

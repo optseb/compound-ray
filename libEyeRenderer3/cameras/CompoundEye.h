@@ -2,6 +2,7 @@
 
 #include <optix_stubs.h>
 #include <string>
+#include <vector>
 
 #include <sutil/sutilapi.h>
 #include <sutil/vec_math.h>
@@ -42,6 +43,9 @@ class CompoundEye : public DataRecordCamera<CompoundEyeData> {
     float3* getRecordFrame();
     void zeroRecordFrame();
     void averageRecordFrame();
+
+    // CPU side data defining the ommatidia, populated when copyOmmatidia is called
+    std::vector<Ommatidium> m_omm;
 
   private:
 

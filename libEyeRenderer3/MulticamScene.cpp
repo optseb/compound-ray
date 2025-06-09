@@ -366,7 +366,7 @@ namespace
                 camera->setLocalSpace(rightAxis, upAxis, forwardAxis);
                 int cidx = scene.addCamera(camera);
                 camera->copyOmmatidia(ommVector.data());
-                scene.addCompoundCamera(cidx, camera, ommVector);
+                scene.addCompoundCamera(cidx, camera);
 
                 eyeDataFile.close();
 
@@ -1114,13 +1114,12 @@ void MulticamScene::previousCamera()
 //  COMPOUND EYE FUNCTIONS
 //
 //------------------------------------------------------------------------------
-uint32_t MulticamScene::addCompoundCamera(int cam_idx, CompoundEye* cameraPtr, std::vector<Ommatidium>& ommVec)
+uint32_t MulticamScene::addCompoundCamera (int cam_idx, CompoundEye* cameraPtr)
 {
     m_compoundEyes[cam_idx] = cameraPtr;
-    m_ommVecs[cam_idx] = ommVec;
     if constexpr (debug_cameras == true) {
-        std::cout << "Inserted ommVec of size " << m_ommVecs[cam_idx].size()
-                  << " into m_ommVecs[" << cam_idx << "].\n";
+        std::cout << "Inserted Compound camera with " << cameraPtr->m_omm.size()
+                  << " ommatidia into m_compoundEyes[" << cam_idx << "].\n";
     }
     return (m_compoundEyes.size()-1);
 }
