@@ -218,6 +218,7 @@ public:
 
     // Obtain a copy of the meshes for external program to do a simple rendering
     std::vector<std::shared_ptr<MeshGroup> > getMeshes() { return m_meshes; }
+    std::vector<MaterialData::Pbr> getMaterials() { return m_materials; }
 
 private:
     void createPTXModule();
