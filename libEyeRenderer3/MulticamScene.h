@@ -216,6 +216,9 @@ public:
     // rendering and ALSO to render compound eyes.
     bool require_noncompound_pipeline = false;
 
+    // Obtain a copy of the meshes for external program to do a simple rendering
+    std::vector<std::shared_ptr<MeshGroup> > getMeshes() { return m_meshes; }
+
 private:
     void createPTXModule();
     void createProgramGroups();
