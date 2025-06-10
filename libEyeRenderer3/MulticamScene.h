@@ -267,6 +267,6 @@ private:
 };
 
 
-void loadScene( const std::string& filename, MulticamScene& scene );
+void loadScene (const std::string& filename, MulticamScene& scene, const Matrix4x4& root_transform);
 
 #endif

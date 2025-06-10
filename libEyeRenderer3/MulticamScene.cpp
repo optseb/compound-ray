@@ -659,7 +659,9 @@ namespace
 } // end anon namespace
 
 
-void loadScene( const std::string& filename, MulticamScene& scene )
+// Load a scene from filename. Apply root_transform (which may be identity, or a transform to
+// convert from y-up (GLTF) to z-up (Blender-agreeable)
+void loadScene (const std::string& filename, MulticamScene& scene, const Matrix4x4& root_transform)
 {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
@@ -887,17 +889,16 @@ void loadScene( const std::string& filename, MulticamScene& scene )
     // Process nodes
     //
     std::vector<int32_t> root_nodes( model.nodes.size(), 1 );
-    for( auto& gltf_node : model.nodes )
-        for( int32_t child : gltf_node.children )
+    for (auto& gltf_node : model.nodes) {
+        for (int32_t child : gltf_node.children) {
             root_nodes[child] = 0;
+        }
+    }
 
-    for( size_t i = 0; i < root_nodes.size(); ++i )
-    {
-        if( !root_nodes[i] )
-            continue;
+    for (size_t i = 0; i < root_nodes.size(); ++i) {
+        if (!root_nodes[i]) { continue; }
         auto& gltf_node = model.nodes[i];
-
-        processGLTFNode( scene, model, gltf_node, Matrix4x4::identity(), glTFdir);
+        processGLTFNode (scene, model, gltf_node, root_transform, glTFdir);
     }
 }
 

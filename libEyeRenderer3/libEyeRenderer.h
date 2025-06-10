@@ -6,6 +6,8 @@
 #include <array>
 #include <string>
 
+#include <sutil/Matrix.h>
+
 // A simplified ommatidium object, to make it easier to
 // transfer ommatidial information from external API users.
 struct OmmatidiumPacket
@@ -37,7 +39,7 @@ extern "C"
     // turns on/off the '[PyEye]' debug outputs
     void setVerbosity (bool v);
     // Loads a given gltf file
-    void loadGlTFscene (const char* filepath);
+    void loadGlTFscene (const char* filepath, sutil::Matrix4x4 root_transform);
     // Stops the eyeRenderer in a slightly more elegant way
     void stop();
     // Sets the output buffer to be large enough for a w x h image

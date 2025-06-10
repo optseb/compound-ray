@@ -232,7 +232,7 @@ int main (int argc, char* argv[])
 
         // Load the file
         std::cout << "Loading file \"" << path << "\"..." << std::endl;
-        loadGlTFscene(path.c_str());
+        loadGlTFscene(path.c_str(), sutil::Matrix4x4::identity());
 
         std::cout << "Initial camera is " << getCurrentCameraName()
                   << (isCompoundEyeActive() ? " which is compound\n" : " which isn't compound\n");
