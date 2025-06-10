@@ -113,15 +113,16 @@ namespace cuda
                     for (uint32_t i = 0u; i < bv.count; ++i) {
                         if constexpr (sizeof(T) == 4) {
                             uint32_t tmp = 0u;
-                            for (uint16_t ii = 0u; ii < bv.elmt_byte_size; ii--) {
+                            for (uint16_t ii = 0u; ii < bv.elmt_byte_size; ii++) {
                                 //std::cout << "tmp |= rawbytes[" << j << "](" << static_cast<uint32_t>(rawbytes[j])
-                                //          << ") << " << (8 * ii) << " or tmp |= " <<  (static_cast<uint32_t>(rawbytes[j]) << (8 * ii)) << std::endl;
+                                //          << ") << " << (8 * ii) << " or tmp |= " <<  (static_cast<uint32_t>(rawbytes[j]) << (8 * ii)) << "...\n";
                                 tmp |= (static_cast<uint32_t>(rawbytes[j++]) << (8 * ii));
                             }
                             this->bv_data[i] = static_cast<T>(tmp);
+                            //std::cout << "...so bv_data["<<i<<"] = " <<  bv_data[i] << std::endl;
                         } else if constexpr (sizeof(T) == 8) {
                             uint64_t tmp = 0u;
-                            for (uint16_t ii = 0u; ii < bv.elmt_byte_size; ii--) {
+                            for (uint16_t ii = 0u; ii < bv.elmt_byte_size; ii++) {
                                 tmp |= static_cast<uint64_t>(rawbytes[j++]) << (8 * ii);
                             }
                             this->bv_data[i] = static_cast<T>(tmp);
