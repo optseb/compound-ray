@@ -59,7 +59,7 @@ namespace cuda
         // array operator for data access
         SUTIL_HOSTDEVICE const T& operator[] (uint32_t idx) const { return *reinterpret_cast<T*>(data + idx * actual_stride()); }
         // The stride is either the byte_stride if defined (larger than sizeof(T)) or sizeof(T)
-        SUTIL_HOSTDEVICE size_t actual_stride() const { return (byte_stride ? byte_stride : sizeof(T)); }
+        SUTIL_HOSTDEVICE size_t actual_stride() const { return (byte_stride ? byte_stride : elmt_byte_size); }
         // Return the buffers data consumption in bytes
         SUTIL_HOSTDEVICE uint32_t size_bytes() const { return count * actual_stride(); }
     };
@@ -83,23 +83,57 @@ namespace cuda
 
         CopiedBufferView (const cuda::BufferView<T>& _bv)
         {
-            // For simplicity don't handle funky byte strides
-            if (bv.byte_stride > 0) {
-                std::cerr << "CopiedBufferView: Don't currently handle byte_stride > 0" << std::endl;
+            this->bv = _bv;
+
+            if (sizeof(T) < bv.elmt_byte_size) {
+                std::cerr << "CopiedBufferView: Can't fit elements into type T" << std::endl;
                 return;
             }
 
-            this->bv = _bv;
-            this->bv_data.resize (bv.count);
-            void* dst = bv_data.data();
+            this->bv_data.resize (bv.count, T{0});
+            size_t nbytes = bv.count * bv.actual_stride();
 
-            size_t nbytes = bv.count * bv.elmt_byte_size;
-
-            auto mc_rtn = cudaMemcpy (dst, reinterpret_cast<void*>(bv.data), nbytes,  cudaMemcpyDeviceToHost);
-            if (mc_rtn) { std::cerr << "CopiedBufferView: cudaMemcpy returned error: " << mc_rtn << std::endl; }
+            if (sizeof(T) == bv.elmt_byte_size) {
+                // Simplest case, can direct copy into bv_data
+                void* dst = this->bv_data.data();
+                auto mc_rtn = cudaMemcpy (dst, reinterpret_cast<void*>(bv.data), nbytes, cudaMemcpyDeviceToHost);
+                if (mc_rtn) {
+                    std::cerr << "CopiedBufferView: cudaMemcpy returned error: " << mc_rtn << std::endl;
+                }
+            } else {
+                // More complex case
+                // Copy to a temporary buffer of size rawbytes, then extract these into type T
+                std::vector<uint8_t> rawbytes (nbytes, 0u);
+                void* dst = rawbytes.data();
+                auto mc_rtn = cudaMemcpy (dst, reinterpret_cast<void*>(bv.data), nbytes, cudaMemcpyDeviceToHost);
+                if (mc_rtn) {
+                    std::cerr << "CopiedBufferView: cudaMemcpy returned error: " << mc_rtn << std::endl;
+                } else {
+                    uint32_t j = 0u;
+                    for (uint32_t i = 0u; i < bv.count; ++i) {
+                        if constexpr (sizeof(T) == 4) {
+                            uint32_t tmp = 0u;
+                            for (uint16_t ii = 0u; ii < bv.elmt_byte_size; ii--) {
+                                //std::cout << "tmp |= rawbytes[" << j << "](" << static_cast<uint32_t>(rawbytes[j])
+                                //          << ") << " << (8 * ii) << " or tmp |= " <<  (static_cast<uint32_t>(rawbytes[j]) << (8 * ii)) << std::endl;
+                                tmp |= (static_cast<uint32_t>(rawbytes[j++]) << (8 * ii));
+                            }
+                            this->bv_data[i] = static_cast<T>(tmp);
+                        } else if constexpr (sizeof(T) == 8) {
+                            uint64_t tmp = 0u;
+                            for (uint16_t ii = 0u; ii < bv.elmt_byte_size; ii--) {
+                                tmp |= static_cast<uint64_t>(rawbytes[j++]) << (8 * ii);
+                            }
+                            this->bv_data[i] = static_cast<T>(tmp);
+                        } else {
+                            std::cerr << "CopiedBufferView: sizeof(T) error: " << std::endl;
+                        }
+                    }
+                }
+            }
         }
 
-        const T operator[]( uint32_t idx ) const
+        const T operator[] (uint32_t idx) const
         {
             if (idx < bv_data.size()) {
                 return bv_data[idx];
