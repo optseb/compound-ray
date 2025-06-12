@@ -56,18 +56,28 @@ public:
         sbtRecord.data.position = {0.0f, 0.0f, 0.0f};
     }
 
-
     const float3 transformToLocal(const float3& vector) const
     {
         return (vector.x*ls.xAxis + vector.y*ls.yAxis + vector.z*ls.zAxis);
     }
+    const float3 transformToWorld(const float3& v) const
+    {
+        // writeme
+    }
+    // Rotate camera around an axis in its own, camera space.
     void rotateLocallyAround(const float angle, const float3& localAxis)
     {
-        // Project the axis and then perform the rotation
-        rotateAround(angle, transformToLocal(localAxis));
+        std::cout << "rotateLocallyAround axis (" << localAxis.x << "," << localAxis.y << "," << localAxis.z << ") by " << angle << " rad" << std::endl;
+        // Project the axis and then perform the rotation of local axis around an axis specified in the world frame
+
+        // Surely this:
+        rotateAround(angle, transformToWorld(localAxis));
+        // Rather than this:
+        //rotateAround(angle, transformToLocal(localAxis));
     }
     void rotateAround(const float angle, const float3& axis)
     {
+        std::cout << "rotateAround axis (" << axis.x << "," << axis.y << "," << axis.z << ") by " << angle << " rad" << std::endl;
         // Just performing an axis-angle rotation of the local space: A lot nicer.
         ls.xAxis = rotatePoint(ls.xAxis, angle, axis);
         ls.yAxis = rotatePoint(ls.yAxis, angle, axis);
