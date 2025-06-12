@@ -212,6 +212,7 @@ namespace
                                   gltf_node.translation[2]
                                   ) );
 
+        // Do I want to store this rotation matrix (or the quaternion) in the camera
         const Matrix4x4 rotation = gltf_node.rotation.empty() ?
         Matrix4x4::identity() :
         Quaternion(
@@ -247,9 +248,9 @@ namespace
                           << "\ttype: " << gltf_camera.type << std::endl;
             }
             // Get configured camera information and local axis
-            const float3 upAxis      = make_float3( node_xform*make_float4_from_double( 0.0f, 1.0f,  0.0f, 0.0f ) );
-            const float3 forwardAxis = make_float3( node_xform*make_float4_from_double( 0.0f, 0.0f, -1.0f, 0.0f ) );
-            const float3 rightAxis   = make_float3( node_xform*make_float4_from_double( 1.0f, 0.0f,  0.0f, 0.0f ) );
+            const float3 upAxis      = make_float3 (node_xform * make_float4_from_double (0.0f, 1.0f,  0.0f, 0.0f)); //  uy
+            const float3 forwardAxis = make_float3 (node_xform * make_float4_from_double (0.0f, 0.0f, -1.0f, 0.0f)); // -uz
+            const float3 rightAxis   = make_float3 (node_xform * make_float4_from_double (1.0f, 0.0f,  0.0f, 0.0f)); //  ux
 
             if constexpr (debug_cameras == true) {
                 std::cout << "\tUP axis: (" << upAxis.x <<"," << upAxis.y << "," << upAxis.z << ")" << std::endl;
@@ -257,12 +258,13 @@ namespace
                 std::cout << "\tR axis: (" << rightAxis.x <<"," << rightAxis.y << "," << rightAxis.z << ")" << std::endl;
             }
 
+            // eye is 'position' - a transform of the origin
             const float3 eye     = make_float3( node_xform*make_float4_from_double( 0.0f, 0.0f,  0.0f, 1.0f ) );
             const float  yfov   = static_cast<float>( gltf_camera.perspective.yfov ) * 180.0f / static_cast<float>( M_PI );
-            if constexpr (debug_gltf == true) {
-                std::cout << "\teye   : " << eye.x    << ", " << eye.y    << ", " << eye.z    << std::endl;
-                std::cout << "\tfov   : " << yfov     << std::endl;
-                std::cout << "\taspect: " << gltf_camera.perspective.aspectRatio << std::endl;
+            if constexpr (debug_cameras == true) {
+                std::cout << "\teye posn: " << eye.x    << ", " << eye.y    << ", " << eye.z    << std::endl;
+                std::cout << "\tfov     : " << yfov     << std::endl;
+                std::cout << "\taspect  : " << gltf_camera.perspective.aspectRatio << std::endl;
             }
             // Form camera objects
             if( gltf_camera.type == "orthographic" )
