@@ -76,7 +76,7 @@ namespace
 {
     // Compile time debugging choices
     static constexpr bool debug_gltf = false;
-    static constexpr bool debug_cameras = true;
+    static constexpr bool debug_cameras = false;
     static constexpr bool debug_pipeline = false;
 
     float3 make_float3_from_double( double x, double y, double z )
@@ -212,7 +212,6 @@ namespace
                                   gltf_node.translation[2]
                                   ) );
 
-        // Do I want to store this rotation matrix (or the quaternion) in the camera
         const Matrix4x4 rotation = gltf_node.rotation.empty() ?
         Matrix4x4::identity() :
         Quaternion(
