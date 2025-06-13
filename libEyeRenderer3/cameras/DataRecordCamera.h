@@ -66,34 +66,15 @@ public:
     // Rotate camera around an axis in its own, camera space.
     void rotateLocallyAround(const float angle, const float3& localAxis)
     {
-        std::cout << "rotateLocallyAround axis ("
-                  << localAxis.x << "," << localAxis.y << "," << localAxis.z << ") by " << angle << " rad" << std::endl;
-        // Project the axis and then perform the rotation of local axis around an axis
-        // specified in the world frame transformToLocal should be named
-        // transformToWorld.
+        // Project the axis and then perform the rotation
         rotateAround(angle, transformToLocal(localAxis));
     }
     void rotateAround(const float angle, const float3& axis)
     {
-        std::cout << "rotateAround axis (" << axis.x << "," << axis.y << "," << axis.z << ") by " << angle << " rad" << std::endl;
-        // axis IS the world axis now, Tick.
-
         // Just performing an axis-angle rotation of the local space: A lot nicer.
-        std::cout << "Rotate xAxis point (" << ls.xAxis.x << "," << ls.xAxis.y << "," << ls.xAxis.z << ") to ";
-        ls.xAxis = rotatePoint (ls.xAxis, angle, axis);
-        std::cout << ls.xAxis.x << "," << ls.xAxis.y << "," << ls.xAxis.z << ")\n";
-
-        std::cout << "Rotate yAxis point (" << ls.yAxis.x << "," << ls.yAxis.y << "," << ls.yAxis.z << ") to ";
-        ls.yAxis = rotatePoint (ls.yAxis, angle, axis);
-        std::cout << ls.yAxis.x << "," << ls.yAxis.y << "," << ls.yAxis.z << ")\n";
-
-        std::cout << "Rotate zAxis point (" << ls.zAxis.x << "," << ls.zAxis.y << "," << ls.zAxis.z << ") to ";
-        ls.zAxis = rotatePoint (ls.zAxis, angle, axis);
-        std::cout << ls.zAxis.x << "," << ls.zAxis.y << "," << ls.zAxis.z << ")\n";
-
-        // Seems that ls has rotated as I expected it to. Tick.
-
-        // What's up in eye3d?
+        ls.xAxis = rotatePoint(ls.xAxis, angle, axis);
+        ls.yAxis = rotatePoint(ls.yAxis, angle, axis);
+        ls.zAxis = rotatePoint(ls.zAxis, angle, axis);
     }
 
     void moveLocally(const float3& localStep)
