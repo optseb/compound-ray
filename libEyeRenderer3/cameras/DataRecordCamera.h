@@ -56,32 +56,44 @@ public:
         sbtRecord.data.position = {0.0f, 0.0f, 0.0f};
     }
 
+    // Transform local vector into the world frame.
+    // Seb thinks this should be named transformToWorld
     const float3 transformToLocal(const float3& vector) const
     {
         return (vector.x*ls.xAxis + vector.y*ls.yAxis + vector.z*ls.zAxis);
     }
-    const float3 transformToWorld(const float3& v) const
-    {
-        // writeme
-    }
+
     // Rotate camera around an axis in its own, camera space.
     void rotateLocallyAround(const float angle, const float3& localAxis)
     {
-        std::cout << "rotateLocallyAround axis (" << localAxis.x << "," << localAxis.y << "," << localAxis.z << ") by " << angle << " rad" << std::endl;
-        // Project the axis and then perform the rotation of local axis around an axis specified in the world frame
-
-        // Surely this:
-        rotateAround(angle, transformToWorld(localAxis));
-        // Rather than this:
-        //rotateAround(angle, transformToLocal(localAxis));
+        std::cout << "rotateLocallyAround axis ("
+                  << localAxis.x << "," << localAxis.y << "," << localAxis.z << ") by " << angle << " rad" << std::endl;
+        // Project the axis and then perform the rotation of local axis around an axis
+        // specified in the world frame transformToLocal should be named
+        // transformToWorld.
+        rotateAround(angle, transformToLocal(localAxis));
     }
     void rotateAround(const float angle, const float3& axis)
     {
         std::cout << "rotateAround axis (" << axis.x << "," << axis.y << "," << axis.z << ") by " << angle << " rad" << std::endl;
+        // axis IS the world axis now, Tick.
+
         // Just performing an axis-angle rotation of the local space: A lot nicer.
-        ls.xAxis = rotatePoint(ls.xAxis, angle, axis);
-        ls.yAxis = rotatePoint(ls.yAxis, angle, axis);
-        ls.zAxis = rotatePoint(ls.zAxis, angle, axis);
+        std::cout << "Rotate xAxis point (" << ls.xAxis.x << "," << ls.xAxis.y << "," << ls.xAxis.z << ") to ";
+        ls.xAxis = rotatePoint (ls.xAxis, angle, axis);
+        std::cout << ls.xAxis.x << "," << ls.xAxis.y << "," << ls.xAxis.z << ")\n";
+
+        std::cout << "Rotate yAxis point (" << ls.yAxis.x << "," << ls.yAxis.y << "," << ls.yAxis.z << ") to ";
+        ls.yAxis = rotatePoint (ls.yAxis, angle, axis);
+        std::cout << ls.yAxis.x << "," << ls.yAxis.y << "," << ls.yAxis.z << ")\n";
+
+        std::cout << "Rotate zAxis point (" << ls.zAxis.x << "," << ls.zAxis.y << "," << ls.zAxis.z << ") to ";
+        ls.zAxis = rotatePoint (ls.zAxis, angle, axis);
+        std::cout << ls.zAxis.x << "," << ls.zAxis.y << "," << ls.zAxis.z << ")\n";
+
+        // Seems that ls has rotated as I expected it to. Tick.
+
+        // What's up in eye3d?
     }
 
     void moveLocally(const float3& localStep)
