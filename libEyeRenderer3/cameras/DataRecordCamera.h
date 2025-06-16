@@ -38,6 +38,14 @@ public:
         ls.yAxis = yAxis;
         ls.zAxis = zAxis;
     }
+    // Set localspace from a transform matrix
+    void setLocalSpace (const sutil::Matrix4x4& camera_localspace)
+    {
+        ls.xAxis = make_float3(camera_localspace[0], camera_localspace[4], camera_localspace[8]);
+        ls.yAxis = make_float3(camera_localspace[1], camera_localspace[5], camera_localspace[9]);
+        ls.zAxis = make_float3(camera_localspace[2], camera_localspace[6], camera_localspace[10]);
+        sbtRecord.data.position = {camera_localspace[3], camera_localspace[7], camera_localspace[11]};
+    }
     void lookAt(const float3& pos)
     {
         lookAt(pos, make_float3(0.0f, 1.0f, 0.0f));

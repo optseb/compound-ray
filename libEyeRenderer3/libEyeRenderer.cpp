@@ -449,6 +449,11 @@ void setCameraPose (float posX, float posY, float posZ, float rotX, float rotY, 
     c->move(make_float3(posX, posY, posZ));
 }
 
+void setCameraPoseMatrix (const sutil::Matrix4x4& camera_localspace)
+{
+    scene->getCamera()->setLocalSpace (camera_localspace);
+}
+
 void getCameraData (std::vector<std::array<float, 3>>& cameraData)
 {
     if (isCompoundEyeActive() == true) {

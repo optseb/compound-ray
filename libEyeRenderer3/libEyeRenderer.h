@@ -85,7 +85,9 @@ extern "C"
     void resetCameraPose();
     // Rotates the camera around rot[X,Y,Z] around world axes and then sets translation to pos[X,Y,Z]
     void setCameraPose (float posX, float posY, float posZ, float rotX, float rotY, float rotZ);
-
+    // Set the camera position using a transform matrix that defines the camera's local coordinate
+    // axes in the world space
+    void setCameraPoseMatrix (const sutil::Matrix4x4& camera_localspace);
     // Compound-specific
 
     bool isCompoundEyeActive();

@@ -22,6 +22,7 @@ class GenericCamera {
     virtual const float3& getPosition() const = 0;
     virtual void setPosition(const float3 pos) = 0;
     virtual void setLocalSpace(const float3 xAxis, const float3 yAxis, const float3 zAxis) = 0;
+    virtual void setLocalSpace(const sutil::Matrix4x4& camera_localspace) = 0;
     virtual void getLocalSpace(float3& xAxis, float3& yAxis, float3& zAxis) = 0;
     virtual void lookAt(const float3& pos, const float3& upVector) = 0;
     // Rotates the camera 'angle' around the given axis
