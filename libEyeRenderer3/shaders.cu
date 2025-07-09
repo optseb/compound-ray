@@ -763,6 +763,48 @@ extern "C" __global__ void __miss__simple_sky()
     setPayloadResult( lower*(1.0f-mix) + upper*mix );
 }
 
+// Simple sky unless your ommatidium direction is (0,0,0) (which appears to guarantee that the ray
+// direction is either (0,0,0) or contains a NaN, then set black
+extern "C" __global__ void __miss__simple_sky_black_down()
+{
+    const float3 p = optixGetWorldRayDirection();
+
+    if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z)) {
+        setPayloadResult(make_float3(0.0f));
+    } else if (p.x == 0.0f && p.y == 0.0f && p.z == 0.0f) {
+        setPayloadResult(make_float3(0.0f));
+    } else {
+        const float3 dir = normalize(p);
+        const float mix = min(max(0.0f, (asin(dir.y)*2.0f)/M_PIf), 1.0f);
+        const float3 upper = make_float3(1.0f, 31.0f, 117.0f)/255.0f;
+        const float3 lower = make_float3(143.0f, 179.0f, 203.0f)/255.0f * 0.8f;
+        setPayloadResult( lower*(1.0f-mix) + upper*mix );
+    }
+}
+
+// Show a single colour for a miss, or another colour for a special ray direction of 000/contains NaN
+__device__ void coloured_miss_coloured_down (const float3& clr_miss, const float3& clr_down)
+{
+    const float3 p = optixGetWorldRayDirection();
+    if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z)) {
+        setPayloadResult(clr_down);
+    } else if (p.x == 0.0f && p.y == 0.0f && p.z == 0.0f) {
+        setPayloadResult(clr_down);
+    } else {
+        setPayloadResult(clr_miss);
+    }
+}
+
+extern "C" __global__ void __miss__white_but_black_down()
+{
+    coloured_miss_coloured_down (make_float3(1.0f), make_float3(0.0f));
+}
+
+extern "C" __global__ void __miss__lightgrey_but_black_down()
+{
+    coloured_miss_coloured_down (make_float3(0.95f), make_float3(0.0f));
+}
+
 //extern "C" __global__ void __miss__sky_and_grass()
 //{
 //    const float3 dir = normalize(optixGetWorldRayDirection());
