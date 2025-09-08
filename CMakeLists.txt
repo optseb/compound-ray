@@ -222,7 +222,7 @@ if( APPLE )
 endif()
 
 
-# Use a packaged GLFW
+# Use a packaged GLFW. Only used by newGuiEyeRenderer, and not by the lib.
 find_package(glfw3 3.2...3.4 REQUIRED)
 # find_package(glfw3...) does not set any 'GLFW_LIBS' variable, so set one manually
 if(UNIX)
