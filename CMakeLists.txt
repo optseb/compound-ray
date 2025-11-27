@@ -389,7 +389,6 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   # rule that specifies this linkage.
   target_link_libraries( ${target_name}
     ${GLFW_LIB_NAME}
-    imgui
     sutil_7_sdk
   )
 
