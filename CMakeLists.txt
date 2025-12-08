@@ -421,6 +421,11 @@ link_directories(/usr/local/cuda/lib64)
 #
 # Third-party support libraries.
 add_subdirectory(support)
+
+# For OCES support
+include_directories(${PROJECT_SOURCE_DIR}/support/maths) #include <sm/vec> etc
+include_directories(${PROJECT_SOURCE_DIR}/support/oces_viewer) #include <oces/reader>
+
 # We'll install cuda headers in (e.g.) /usr/local/include/compound-ray/cuda
 add_subdirectory(cuda)
 # NVidia's sutil library.  The rules to build it are found in the subdirectory.

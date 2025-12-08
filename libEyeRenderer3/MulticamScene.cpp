@@ -72,6 +72,8 @@
 # define GL_NEAREST 0x2600
 #endif
 
+#include <oces/reader>
+
 namespace
 {
     // Compile time debugging choices
@@ -317,54 +319,69 @@ namespace
                     return;
                 }
 
+                std::vector<Ommatidium> ommVector; // Stores the ommatidia that we're going to load
+
                 // Try and load the file as an absolute (or relative to the execution of the eye)
-                std::ifstream eyeDataFile(eyeDataPath, std::ifstream::in);
-                std::string usedEyeDataPath; // Track the actual complete path that was used
-                if(!eyeDataFile.is_open())
-                {
-                    if constexpr (debug_cameras == true) {
-                        std::cerr << "WARNING: Unable to open \"" << eyeDataPath << "\", attempting to open at relative address..."<<std::endl;
+                if (eyeDataPath.find (".gltf") != std::string::npos) {
+                    // Assume this is an OCES file
+                    oces::reader oces_reader (eyeDataPath);
+                    ommVector.resize (oces_reader.position.size());
+                    std::cerr << "Copying " << oces_reader.position.size() << " ommatidia\n";
+                    for (size_t i = 0; i < oces_reader.position.size(); ++i) {
+                        ommVector[i].relativePosition = oces_reader.position[i];
+                        ommVector[i].relativeDirection = oces_reader.orientation[i];
+                        ommVector[i].focalPointOffset = oces_reader.focal_offset[i];
+                        ommVector[i].acceptanceAngleRadians = oces_reader.acceptance_angle[i];
                     }
-                    // Try and load the file relatively to the gltf file
-                    std::string relativeEyeDataPath = glTFdir + eyeDataPath; // Just append the eye data path
-                    eyeDataFile.open(relativeEyeDataPath, std::ifstream::in);
+
+                } else {
+                    std::ifstream eyeDataFile(eyeDataPath, std::ifstream::in);
+                    std::string usedEyeDataPath; // Track the actual complete path that was used
                     if(!eyeDataFile.is_open())
                     {
-                        std::cerr << "ERROR: Unable to open \"" << relativeEyeDataPath << "\", read cancelled."<<std::endl;
-                        scene.eye_data_path = relativeEyeDataPath;
-                        return;
+                        if constexpr (debug_cameras == true) {
+                            std::cerr << "WARNING: Unable to open \"" << eyeDataPath << "\", attempting to open at relative address..."<<std::endl;
+                        }
+                        // Try and load the file relatively to the gltf file
+                        std::string relativeEyeDataPath = glTFdir + eyeDataPath; // Just append the eye data path
+                        eyeDataFile.open(relativeEyeDataPath, std::ifstream::in);
+                        if(!eyeDataFile.is_open())
+                        {
+                            std::cerr << "ERROR: Unable to open \"" << relativeEyeDataPath << "\", read cancelled."<<std::endl;
+                            scene.eye_data_path = relativeEyeDataPath;
+                            return;
+                        }else{
+                            if constexpr (debug_cameras == true) {
+                                std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
+                            }
+                            usedEyeDataPath = relativeEyeDataPath;
+                            scene.eye_data_path = usedEyeDataPath;
+                        }
                     }else{
                         if constexpr (debug_cameras == true) {
-                            std::cout << "Reading from " << relativeEyeDataPath << "..." << std::endl;
+                            std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
                         }
-                        usedEyeDataPath = relativeEyeDataPath;
+                        usedEyeDataPath = eyeDataPath;
                         scene.eye_data_path = usedEyeDataPath;
                     }
-                }else{
-                    if constexpr (debug_cameras == true) {
-                        std::cout << "Reading from " << eyeDataPath << "..." << std::endl;
+
+                    // Read the lines of the file
+                    std::string line;
+                    size_t ommCount = 0;
+                    while(std::getline(eyeDataFile, line))
+                    {
+                        std::vector<std::string> splitData = splitString(line, " ");// position, direction, angle, offset
+                        Ommatidium o = {{std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2])}, {std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5])}, std::stof(splitData[6]), std::stof(splitData[7]) };
+                        ommVector.push_back(o);
+                        ommCount++;
                     }
-                    usedEyeDataPath = eyeDataPath;
-                    scene.eye_data_path = usedEyeDataPath;
-                }
+                    std::cout <<  "  Loaded " << ommCount << " ommatidia." << std::endl;
 
-                // Read the lines of the file
-                std::string line;
-                std::vector<Ommatidium> ommVector;// Stores the ommatidia
-                size_t ommCount = 0;
-                while(std::getline(eyeDataFile, line))
-                {
-                    std::vector<std::string> splitData = splitString(line, " ");// position, direction, angle, offset
-                    Ommatidium o = {{std::stof(splitData[0]), std::stof(splitData[1]), std::stof(splitData[2])}, {std::stof(splitData[3]), std::stof(splitData[4]), std::stof(splitData[5])}, std::stof(splitData[6]), std::stof(splitData[7]) };
-                    ommVector.push_back(o);
-                    ommCount++;
-                }
-                std::cout <<  "  Loaded " << ommCount << " ommatidia." << std::endl;
-
-                if(ommCount == 0)
-                {
-                    std::cerr << "  ERROR: Zero ommatidia loaded. Are you specifying the right path? (Check previous 'Reading from...' output)" << std::endl;
-                    return;
+                    if(ommCount == 0)
+                    {
+                        std::cerr << "  ERROR: Zero ommatidia loaded. Are you specifying the right path? (Check previous 'Reading from...' output)" << std::endl;
+                        return;
+                    }
                 }
 
                 // Create a new compound eye
