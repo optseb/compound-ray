@@ -1,0 +1,6 @@
+[submodule "support/oces_viewer"]
+	path = support/oces_viewer
+	url = http://github.com/sebsjames/oces_viewer
+[submodule "support/maths"]
+	path = support/maths
+	url = http://github.com/sebsjames/maths
